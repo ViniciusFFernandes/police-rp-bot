@@ -6,6 +6,7 @@ const VALID_KEYS = [
     'weapon_report_channel_id',
     'voice_category_id',
     'supervisor_role_ids',
+    'config_manager_role_ids',
 ];
 
 async function get(guildId, key) {
@@ -62,4 +63,19 @@ async function setSupervisorRoles(guildId, roleIds) {
     await set(guildId, 'supervisor_role_ids', JSON.stringify(roleIds));
 }
 
-module.exports = { get, set, getAll, isConfigured, getSupervisorRoles, setSupervisorRoles, VALID_KEYS };
+async function getConfigManagerRoles(guildId) {
+    const raw = await get(guildId, 'config_manager_role_ids');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+async function setConfigManagerRoles(guildId, roleIds) {
+    await set(guildId, 'config_manager_role_ids', JSON.stringify(roleIds));
+}
+
+module.exports = {
+    get, set, getAll, isConfigured,
+    getSupervisorRoles, setSupervisorRoles,
+    getConfigManagerRoles, setConfigManagerRoles,
+    VALID_KEYS,
+};

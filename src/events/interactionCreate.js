@@ -6,8 +6,8 @@ const guildConfigRepo = require('../repositories/guildConfigRepository');
 const { isAllowed } = require('../utils/guildWhitelist');
 const logger = require('../utils/logger');
 
-// Comandos admin não precisam de configuração prévia
-const ADMIN_COMMANDS = new Set(['configurar', 'configuracoes']);
+// Estes comandos não precisam de configuração prévia do servidor
+const ADMIN_COMMANDS = new Set(['configurar', 'configuracoes', 'veiculo', 'unidade']);
 
 module.exports = {
     name: Events.InteractionCreate,

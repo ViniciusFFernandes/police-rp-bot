@@ -32,6 +32,12 @@ const CONFIG_META = {
         type: 'roles',
         description: 'Cargos que podem gerenciar turnos de outros oficiais',
     },
+    config_manager_role_ids: {
+        label: 'Gestores de Configuração',
+        emoji: '🔧',
+        type: 'roles',
+        description: 'Cargos que podem usar /configurar, /veiculo e /unidade',
+    },
 };
 
 async function setChannel(guildId, key, channel) {
@@ -41,13 +47,19 @@ async function setChannel(guildId, key, channel) {
 
 async function setRole(guildId, role, add = true) {
     const current = await guildConfigRepo.getSupervisorRoles(guildId);
-    let updated;
-    if (add) {
-        updated = [...new Set([...current, role.id])];
-    } else {
-        updated = current.filter(id => id !== role.id);
-    }
+    const updated = add
+        ? [...new Set([...current, role.id])]
+        : current.filter(id => id !== role.id);
     await guildConfigRepo.setSupervisorRoles(guildId, updated);
+    return updated;
+}
+
+async function setConfigManagerRole(guildId, role, add = true) {
+    const current = await guildConfigRepo.getConfigManagerRoles(guildId);
+    const updated = add
+        ? [...new Set([...current, role.id])]
+        : current.filter(id => id !== role.id);
+    await guildConfigRepo.setConfigManagerRoles(guildId, updated);
     return updated;
 }
 
@@ -60,10 +72,15 @@ async function buildConfigEmbed(guild) {
     for (const [key, meta] of Object.entries(CONFIG_META)) {
         const value = cfg[key];
         if (meta.type === 'roles') {
-            const roles = value ? JSON.parse(value) : [];
+            let roles = [];
+            try { roles = value ? JSON.parse(value) : []; } catch { roles = []; }
+            // Gestores de configuração podem não estar definidos sem ser um problema crítico
+            const optional = key === 'config_manager_role_ids';
             fields.push({
                 name: `${meta.emoji} ${meta.label}`,
-                value: roles.length > 0 ? roles.map(id => `<@&${id}>`).join(', ') : '❌ Não configurado',
+                value: roles.length > 0
+                    ? roles.map(id => `<@&${id}>`).join(', ')
+                    : optional ? '— Nenhum (somente Administradores)' : '❌ Não configurado',
                 inline: false,
             });
         } else {
@@ -90,4 +107,4 @@ async function buildConfigEmbed(guild) {
         .setTimestamp();
 }
 
-module.exports = { setChannel, setRole, buildConfigEmbed, CONFIG_META };
+module.exports = { setChannel, setRole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };

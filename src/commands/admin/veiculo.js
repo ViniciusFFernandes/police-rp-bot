@@ -1,14 +1,16 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const vehicleRepo = require('../../repositories/vehicleRepository');
+const { isConfigManager } = require('../../utils/permissions');
 const { COLOR } = require('../../utils/embeds');
 
 const MAX_VEHICLES = 25;
+
+const PERMISSION_DENIED = '❌ Você não tem permissão para usar este comando.\nApenas **Administradores** e **Gestores de Configuração** podem gerenciar viaturas.';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('veiculo')
         .setDescription('Gerencia o cadastro de viaturas disponíveis para os turnos')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(sub =>
             sub.setName('registrar')
                 .setDescription('Cadastra uma nova viatura')
@@ -36,6 +38,10 @@ module.exports = {
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
+
+        if (!await isConfigManager(interaction.member)) {
+            return interaction.editReply({ content: PERMISSION_DENIED });
+        }
 
         const sub = interaction.options.getSubcommand();
         const guildId = interaction.guildId;

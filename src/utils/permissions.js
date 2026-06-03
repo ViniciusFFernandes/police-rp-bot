@@ -10,6 +10,15 @@ function isAdmin(member) {
     return member.permissions.has(PermissionFlagsBits.Administrator);
 }
 
+// Pode gerenciar configurações do bot (canais, cargos, viaturas, unidades).
+// Admin do servidor sempre pode; gestores de configuração também.
+// A gestão dos próprios cargos gestores é exclusiva de Admins.
+async function isConfigManager(member) {
+    if (isAdmin(member)) return true;
+    const roles = await guildConfigRepo.getConfigManagerRoles(member.guild.id);
+    return roles.some(roleId => member.roles.cache.has(roleId));
+}
+
 async function canManageShift(interaction, shiftOwnerId) {
     const member = interaction.member;
     if (member.id === shiftOwnerId) return true;
@@ -18,4 +27,4 @@ async function canManageShift(interaction, shiftOwnerId) {
     return false;
 }
 
-module.exports = { isSupervisor, isAdmin, canManageShift };
+module.exports = { isSupervisor, isAdmin, isConfigManager, canManageShift };

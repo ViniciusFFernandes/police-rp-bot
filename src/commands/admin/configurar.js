@@ -1,16 +1,15 @@
 const {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     ChannelType,
 } = require('discord.js');
 const guildConfigService = require('../../services/guildConfigService');
-const guildConfigRepo = require('../../repositories/guildConfigRepository');
+const guildConfigRepo    = require('../../repositories/guildConfigRepository');
+const { isConfigManager, isAdmin } = require('../../utils/permissions');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('configurar')
         .setDescription('Configura o bot para este servidor')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(sub =>
             sub.setName('canal-turnos')
                 .setDescription('Canal onde as embeds de turno são postadas')
@@ -65,7 +64,25 @@ module.exports = {
                         .setRequired(true)
                         .addChoices(
                             { name: 'Adicionar', value: 'add' },
-                            { name: 'Remover', value: 'remove' },
+                            { name: 'Remover',   value: 'remove' },
+                        )
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('cargo-gestor')
+                .setDescription('Adiciona ou remove um cargo gestor de configurações do bot (somente Administradores)')
+                .addRoleOption(opt =>
+                    opt.setName('cargo')
+                        .setDescription('Cargo a modificar')
+                        .setRequired(true)
+                )
+                .addStringOption(opt =>
+                    opt.setName('acao')
+                        .setDescription('Adicionar ou remover o cargo')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Adicionar', value: 'add' },
+                            { name: 'Remover',   value: 'remove' },
                         )
                 )
         ),
@@ -73,14 +90,28 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const sub = interaction.options.getSubcommand();
+        const sub     = interaction.options.getSubcommand();
         const guildId = interaction.guildId;
 
+        // Gestão dos próprios cargos gestores é exclusiva de Administradores
+        if (sub === 'cargo-gestor' && !isAdmin(interaction.member)) {
+            return interaction.editReply({
+                content: '❌ Apenas **Administradores** do servidor podem gerenciar os cargos gestores de configuração.',
+            });
+        }
+
+        // Demais subcomandos: Admin OU cargo gestor
+        if (sub !== 'cargo-gestor' && !await isConfigManager(interaction.member)) {
+            return interaction.editReply({
+                content: '❌ Você não tem permissão para usar este comando.\nApenas **Administradores** e **Gestores de Configuração** podem configurar o bot.',
+            });
+        }
+
         const KEY_MAP = {
-            'canal-turnos': 'shift_channel_id',
+            'canal-turnos':     'shift_channel_id',
             'canal-relatorios': 'report_channel_id',
-            'canal-armamento': 'weapon_report_channel_id',
-            'categoria-voz': 'voice_category_id',
+            'canal-armamento':  'weapon_report_channel_id',
+            'categoria-voz':    'voice_category_id',
         };
 
         if (KEY_MAP[sub]) {
@@ -93,13 +124,24 @@ module.exports = {
         }
 
         if (sub === 'cargo-supervisor') {
-            const role = interaction.options.getRole('cargo');
+            const role   = interaction.options.getRole('cargo');
             const action = interaction.options.getString('acao');
             const updated = await guildConfigService.setRole(guildId, role, action === 'add');
             const list = updated.length > 0 ? updated.map(id => `<@&${id}>`).join(', ') : 'Nenhum';
             const verb = action === 'add' ? 'adicionado' : 'removido';
             return interaction.editReply({
                 content: `✅ Cargo ${role} **${verb}**.\nSupervisores atuais: ${list}`,
+            });
+        }
+
+        if (sub === 'cargo-gestor') {
+            const role   = interaction.options.getRole('cargo');
+            const action = interaction.options.getString('acao');
+            const updated = await guildConfigService.setConfigManagerRole(guildId, role, action === 'add');
+            const list = updated.length > 0 ? updated.map(id => `<@&${id}>`).join(', ') : 'Nenhum';
+            const verb = action === 'add' ? 'adicionado' : 'removido';
+            return interaction.editReply({
+                content: `✅ Cargo ${role} **${verb}** como gestor de configurações.\nGestores atuais: ${list}`,
             });
         }
     },
