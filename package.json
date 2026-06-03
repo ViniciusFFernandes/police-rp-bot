@@ -1,0 +1,28 @@
+{
+  "name": "police-rp-bot",
+  "version": "1.0.0",
+  "description": "Bot de controle operacional para departamento policial de RP",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "deploy": "node scripts/deploy-commands.js",
+    "db:migrate": "node database/migrate.js",
+    "db:seed": "node database/seed.js",
+    "db:reset": "node database/reset.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "pg": "^8.13.1",
+    "dotenv": "^16.4.7",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
