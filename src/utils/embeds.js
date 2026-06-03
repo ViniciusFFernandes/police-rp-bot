@@ -58,7 +58,7 @@ function buildShiftEmbed(shift, user, voiceChannel) {
         .addFields(
             { name: '👮 Responsável', value: `<@${user.id}>`, inline: true },
             { name: '📟 Callsign', value: shift.callsign, inline: true },
-            { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
+            { name: '🚗 Viatura', value: shift.vehicle_name || shift.vehicle_prefix, inline: true },
         );
 
     const team = formatTeam(shift.members);
@@ -162,7 +162,7 @@ function buildReportEmbed(shift, user, pauses) {
 
     embed.addFields(
         { name: '📟 Callsign', value: shift.callsign, inline: true },
-        { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
+        { name: '🚗 Viatura', value: shift.vehicle_name || shift.vehicle_prefix, inline: true },
         { name: '🕐 Início', value: formatTimestamp(shift.started_at), inline: true },
         { name: '🏁 Encerramento', value: formatTimestamp(shift.ended_at), inline: true },
         { name: '⏱️ Tempo Total', value: formatDuration(new Date(shift.ended_at) - new Date(shift.started_at)), inline: true },
@@ -193,7 +193,7 @@ function buildWeaponLossEmbed(shift, user, loss, reportedByUser = null) {
         .addFields(
             { name: '👮 Oficial', value: `<@${user.id}> (${user.tag})`, inline: false },
             { name: '📟 Callsign', value: shift.callsign, inline: true },
-            { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
+            { name: '🚗 Viatura', value: shift.vehicle_name || shift.vehicle_prefix, inline: true },
             { name: '🔫 Nº de Série', value: `\`${loss.serial_number}\``, inline: true },
             { name: '🕐 Horário', value: formatTimestamp(loss.reported_at), inline: true },
             { name: '📝 Observação', value: loss.observation || 'Sem observação', inline: false },
@@ -215,7 +215,7 @@ function buildWeaponAddedEmbed(shift, user, weaponName, serialNumber) {
         .addFields(
             { name: '👮 Oficial', value: `<@${user.id}> (${user.tag})`, inline: false },
             { name: '📟 Callsign', value: shift.callsign, inline: true },
-            { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
+            { name: '🚗 Viatura', value: shift.vehicle_name || shift.vehicle_prefix, inline: true },
             { name: '📛 Nome', value: weaponName, inline: true },
             { name: '🔢 Nº de Série', value: `\`${serialNumber}\``, inline: true },
             { name: '🕐 Horário', value: formatTimestamp(new Date()), inline: true },

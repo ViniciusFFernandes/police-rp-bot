@@ -1,11 +1,11 @@
 const db = require('../database/pool');
 
-async function create(client, { userId, guildId, callsign, vehiclePrefix, weaponSerials }) {
+async function create(client, { userId, guildId, callsign, vehiclePrefix, vehicleName = null, weaponSerials }) {
     const { rows } = await (client || db).query(
-        `INSERT INTO shifts (user_id, guild_id, callsign, vehicle_prefix, weapon_serials)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO shifts (user_id, guild_id, callsign, vehicle_prefix, vehicle_name, weapon_serials)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [userId, guildId, callsign, vehiclePrefix, weaponSerials]
+        [userId, guildId, callsign, vehiclePrefix, vehicleName, weaponSerials]
     );
     return rows[0];
 }

@@ -15,7 +15,7 @@ const logger = require('../utils/logger');
 // Quem executa o comando é o líder (motorista/responsável); additionalDiscordIds
 // são os oficiais adicionais da unidade. É criado um único turno, um único canal
 // de voz, e os armamentos de TODOS os participantes são vinculados automaticamente.
-async function startShift(interaction, cfg, { callsign, vehiclePrefix, additionalDiscordIds = [] }) {
+async function startShift(interaction, cfg, { callsign, vehiclePrefix, additionalDiscordIds = [], vehicle = null }) {
     const member = interaction.member;
     const guild = interaction.guild;
 
@@ -78,6 +78,7 @@ async function startShift(interaction, cfg, { callsign, vehiclePrefix, additiona
             guildId: guild.id,
             callsign,
             vehiclePrefix,
+            vehicleName: vehicle,
             weaponSerials,
         });
         for (const p of participants) {
@@ -91,8 +92,10 @@ async function startShift(interaction, cfg, { callsign, vehiclePrefix, additiona
     }
 
     try {
+        // Nome do canal: "Viatura-Callsign" quando há viatura, senão só callsign
+        const vcName = vehicle ? `${vehicle}-${callsign}` : callsign;
         voiceChannel = await guild.channels.create({
-            name: callsign,
+            name: vcName,
             type: ChannelType.GuildVoice,
             parent: cfg.voice_category_id,
             permissionOverwrites: [

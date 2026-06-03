@@ -4,8 +4,7 @@ const { requireConfig } = require('../utils/configGuard');
 const { buildStartShiftModal } = require('../utils/shiftForms');
 const logger = require('../utils/logger');
 
-// Cria o turno a partir da composição escolhida.
-async function startFromComposition(interaction, callsign, vehiclePrefix, additionalDiscordIds) {
+async function startFromComposition(interaction, callsign, vehiclePrefix, additionalDiscordIds, vehicle) {
     await interaction.deferUpdate();
 
     const cfg = await requireConfig(interaction);
@@ -15,6 +14,7 @@ async function startFromComposition(interaction, callsign, vehiclePrefix, additi
         callsign,
         vehiclePrefix,
         additionalDiscordIds,
+        vehicle: vehicle || null,
     });
 
     pendingComposition.clear(interaction.guildId, interaction.user.id);
@@ -23,14 +23,16 @@ async function startFromComposition(interaction, callsign, vehiclePrefix, additi
         return interaction.editReply({ content: `❌ ${result.error}`, components: [] });
     }
 
+    const vehicleInfo = vehicle ? `🚗 Viatura: **${vehicle}**\n` : '';
     const weaponInfo = result.weaponCount > 0
         ? `🔫 **${result.weaponCount} arma(s)** vinculadas automaticamente dos arsenais da equipe.`
-        : '⚠️ Nenhuma arma vinculada — a equipe não possui armas ativas no arsenal. Use **Adicionar Arma** ou `/arma registrar`.';
+        : '⚠️ Nenhuma arma vinculada. Use **Adicionar Arma** ou `/arma registrar`.';
 
     await interaction.editReply({
         content:
             `✅ **Unidade iniciada!**\n` +
-            `Callsign: **${callsign}** · Viatura: **${vehiclePrefix}**\n` +
+            `Callsign: **${callsign}**\n` +
+            vehicleInfo +
             `👥 **${result.memberCount} oficial(is)** na unidade.\n${weaponInfo}`,
         components: [],
     });
@@ -44,26 +46,33 @@ module.exports = {
         const action = parts[1];
 
         try {
-            // Seleção de oficiais adicionais — apenas guarda a escolha
+            // Seleção de viatura
+            if (action === 'vehicle') {
+                pendingComposition.setVehicle(interaction.guildId, interaction.user.id, interaction.values[0]);
+                return interaction.deferUpdate();
+            }
+
+            // Seleção de oficiais adicionais
             if (action === 'members') {
                 pendingComposition.setMembers(interaction.guildId, interaction.user.id, interaction.values);
                 return interaction.deferUpdate();
             }
 
-            // Iniciar com os oficiais adicionais selecionados
+            // Confirmar com os adicionais selecionados
             if (action === 'confirm') {
                 const [, , callsign, vehiclePrefix] = parts;
-                const additionalDiscordIds = pendingComposition.getMembers(interaction.guildId, interaction.user.id);
-                return startFromComposition(interaction, callsign, vehiclePrefix, additionalDiscordIds);
+                const { memberIds, vehicle } = pendingComposition.get(interaction.guildId, interaction.user.id);
+                return startFromComposition(interaction, callsign, vehiclePrefix, memberIds, vehicle);
             }
 
-            // Iniciar unidade individual (sem adicionais)
+            // Unidade individual — usa a viatura selecionada (se houver)
             if (action === 'solo') {
                 const [, , callsign, vehiclePrefix] = parts;
-                return startFromComposition(interaction, callsign, vehiclePrefix, []);
+                const { vehicle } = pendingComposition.get(interaction.guildId, interaction.user.id);
+                return startFromComposition(interaction, callsign, vehiclePrefix, [], vehicle);
             }
 
-            // Fluxo de remodulação — abrir nova montagem de unidade
+            // Remodulação — abre nova montagem de unidade
             if (action === 'new') {
                 return interaction.showModal(buildStartShiftModal());
             }
