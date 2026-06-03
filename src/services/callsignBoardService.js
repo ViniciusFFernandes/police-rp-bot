@@ -17,25 +17,11 @@ function buildBoardEmbed(guild, profiles) {
         return embed;
     }
 
-    // Agrupa por distrito para melhor leitura
-    const byDistrict = new Map();
-    for (const p of profiles) {
-        const key = p.district;
-        if (!byDistrict.has(key)) byDistrict.set(key, []);
-        byDistrict.get(key).push(p);
-    }
+    const lines = profiles.map(p =>
+        `<@${p.discord_id}> — Distrito \`${p.district}\` · Callsign \`${p.callsign_num}\``
+    ).join('\n');
 
-    for (const [district, members] of [...byDistrict.entries()].sort()) {
-        const lines = members.map(p =>
-            `<@${p.discord_id}> — \`${district}-<unidade>-${p.callsign_num}\``
-        ).join('\n');
-
-        embed.addFields({
-            name: `📍 Distrito ${district}`,
-            value: lines,
-            inline: false,
-        });
-    }
+    embed.setDescription(lines);
 
     return embed;
 }
