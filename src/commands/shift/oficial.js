@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const userRepo            = require('../../repositories/userRepository');
-const officialProfileRepo = require('../../repositories/officialProfileRepository');
-const unitRepo            = require('../../repositories/unitRepository');
+const userRepo               = require('../../repositories/userRepository');
+const officialProfileRepo    = require('../../repositories/officialProfileRepository');
+const unitRepo               = require('../../repositories/unitRepository');
+const callsignBoardService   = require('../../services/callsignBoardService');
 const { isAdmin, isSupervisor } = require('../../utils/permissions');
 const { formatTimestamp } = require('../../utils/time');
 const { COLOR } = require('../../utils/embeds');
@@ -72,6 +73,9 @@ module.exports = {
             );
 
             await officialProfileRepo.upsert(dbUser.id, guildId, district, callsignNum);
+
+            // Atualiza o quadro de callsigns em background (silencioso se não configurado)
+            callsignBoardService.refresh(interaction.guild).catch(() => {});
 
             if (isSelf) {
                 const units = await unitRepo.findActive(guildId);

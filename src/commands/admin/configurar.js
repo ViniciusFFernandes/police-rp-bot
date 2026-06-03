@@ -2,8 +2,9 @@ const {
     SlashCommandBuilder,
     ChannelType,
 } = require('discord.js');
-const guildConfigService = require('../../services/guildConfigService');
-const guildConfigRepo    = require('../../repositories/guildConfigRepository');
+const guildConfigService    = require('../../services/guildConfigService');
+const guildConfigRepo       = require('../../repositories/guildConfigRepository');
+const callsignBoardService  = require('../../services/callsignBoardService');
 const { isConfigManager, isAdmin } = require('../../utils/permissions');
 
 module.exports = {
@@ -47,6 +48,16 @@ module.exports = {
                     opt.setName('categoria')
                         .setDescription('Selecione a categoria')
                         .addChannelTypes(ChannelType.GuildCategory)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-callsign')
+                .setDescription('Canal onde o quadro de callsigns dos oficiais é mantido e atualizado automaticamente')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true)
                 )
         )
@@ -112,12 +123,24 @@ module.exports = {
             'canal-relatorios': 'report_channel_id',
             'canal-armamento':  'weapon_report_channel_id',
             'categoria-voz':    'voice_category_id',
+            'canal-callsign':   'callsign_channel_id',
         };
 
         if (KEY_MAP[sub]) {
             const optionName = sub === 'categoria-voz' ? 'categoria' : 'canal';
             const channel = interaction.options.getChannel(optionName);
             const meta = await guildConfigService.setChannel(guildId, KEY_MAP[sub], channel);
+
+            // Ao configurar o canal de callsigns, descarta a mensagem anterior
+            // (estava no canal antigo) e publica o quadro imediatamente
+            if (sub === 'canal-callsign') {
+                await guildConfigRepo.set(guildId, 'callsign_message_id', null);
+                await callsignBoardService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO quadro de callsigns foi publicado nesse canal e será atualizado automaticamente.`,
+                });
+            }
+
             return interaction.editReply({
                 content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.`,
             });

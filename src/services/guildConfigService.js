@@ -38,6 +38,12 @@ const CONFIG_META = {
         type: 'roles',
         description: 'Cargos que podem usar /configurar, /veiculo e /unidade',
     },
+    callsign_channel_id: {
+        label: 'Canal de Callsigns',
+        emoji: '📋',
+        type: 'channel',
+        description: 'Canal onde o quadro de callsigns dos oficiais é mantido',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

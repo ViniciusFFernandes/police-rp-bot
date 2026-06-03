@@ -34,4 +34,18 @@ async function findByDiscordId(discordId, guildId) {
     return rows[0] || null;
 }
 
-module.exports = { upsert, findByUser, findByDiscordId };
+// Todos os perfis do servidor, ordenados por distrito e callsign
+async function findAllByGuild(guildId) {
+    const { rows } = await db.query(
+        `SELECT op.district, op.callsign_num, op.updated_at,
+                u.discord_id, u.display_name
+         FROM official_profiles op
+         JOIN users u ON u.id = op.user_id
+         WHERE op.guild_id = $1
+         ORDER BY op.district, op.callsign_num`,
+        [guildId]
+    );
+    return rows;
+}
+
+module.exports = { upsert, findByUser, findByDiscordId, findAllByGuild };
