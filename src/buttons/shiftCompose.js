@@ -1,19 +1,45 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const shiftService = require('../services/shiftService');
 const pendingComposition = require('../utils/pendingComposition');
 const { requireConfig } = require('../utils/configGuard');
 const { buildStartShiftModal } = require('../utils/shiftForms');
 const logger = require('../utils/logger');
 
-async function startFromComposition(interaction, callsign, vehiclePrefix, additionalDiscordIds, vehicle) {
+// Monta callsign e vehiclePrefix a partir dos dados guardados na composição.
+function buildCallsign(district, unit, callsignNum) {
+    return `${district}-${unit}-${callsignNum}`;
+}
+
+function buildVehiclePrefix(district, callsignNum) {
+    return `${district}${callsignNum}`;
+}
+
+async function startFromComposition(interaction, additionalDiscordIds) {
     await interaction.deferUpdate();
 
     const cfg = await requireConfig(interaction);
     if (!cfg) return;
 
+    const { district, callsignNum, unit, vehicle, memberIds } = pendingComposition.get(
+        interaction.guildId, interaction.user.id
+    );
+
+    // Unidade é obrigatória
+    if (!unit) {
+        return interaction.followUp({
+            content: '❌ Selecione uma **unidade** antes de iniciar o turno.',
+            ephemeral: true,
+        });
+    }
+
+    const callsign      = buildCallsign(district, unit, callsignNum);
+    const vehiclePrefix = buildVehiclePrefix(district, callsignNum);
+    const members       = additionalDiscordIds !== null ? additionalDiscordIds : memberIds;
+
     const result = await shiftService.startShift(interaction, cfg, {
         callsign,
         vehiclePrefix,
-        additionalDiscordIds,
+        additionalDiscordIds: members,
         vehicle: vehicle || null,
     });
 
@@ -24,7 +50,7 @@ async function startFromComposition(interaction, callsign, vehiclePrefix, additi
     }
 
     const vehicleInfo = vehicle ? `🚗 Viatura: **${vehicle}**\n` : '';
-    const weaponInfo = result.weaponCount > 0
+    const weaponInfo  = result.weaponCount > 0
         ? `🔫 **${result.weaponCount} arma(s)** vinculadas automaticamente dos arsenais da equipe.`
         : '⚠️ Nenhuma arma vinculada. Use **Adicionar Arma** ou `/arma registrar`.';
 
@@ -42,37 +68,86 @@ module.exports = {
     customId: 'shiftcompose',
 
     async execute(interaction) {
-        const parts = interaction.customId.split(':');
+        const parts  = interaction.customId.split(':');
         const action = parts[1];
 
         try {
+            // Seleção de unidade — habilita os botões de confirmação
+            if (action === 'unit') {
+                pendingComposition.setUnit(interaction.guildId, interaction.user.id, interaction.values[0]);
+
+                // Reabilita os botões ao selecionar uma unidade
+                const confirmBtn = new ButtonBuilder()
+                    .setCustomId('shiftcompose:confirm')
+                    .setLabel('Iniciar Turno')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('✅');
+
+                const soloBtn = new ButtonBuilder()
+                    .setCustomId('shiftcompose:solo')
+                    .setLabel('Apenas eu')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('👤');
+
+                const rows = interaction.message.components.map(row => {
+                    const newRow = new ActionRowBuilder();
+                    newRow.addComponents(
+                        row.components.map(c => {
+                            if (c.customId === 'shiftcompose:confirm') return confirmBtn;
+                            if (c.customId === 'shiftcompose:solo')    return soloBtn;
+                            return ActionRowBuilder.from(row).components.find(x => x.customId === c.customId) || c;
+                        })
+                    );
+                    return newRow;
+                });
+
+                const { district, callsignNum } = pendingComposition.get(interaction.guildId, interaction.user.id);
+                const unit = interaction.values[0];
+                const preview = district && callsignNum ? buildCallsign(district, unit, callsignNum) : unit;
+
+                return interaction.update({
+                    content: interaction.message.content.replace(
+                        /`[^`]+`/,
+                        `\`${preview}\``
+                    ),
+                    components: interaction.message.components.map(row => {
+                        const rebuilt = ActionRowBuilder.from(row);
+                        rebuilt.components = row.components.map(c => {
+                            if (c.customId === 'shiftcompose:confirm')
+                                return ButtonBuilder.from(c).setDisabled(false);
+                            if (c.customId === 'shiftcompose:solo')
+                                return ButtonBuilder.from(c).setDisabled(false);
+                            return c;
+                        });
+                        return rebuilt;
+                    }),
+                });
+            }
+
             // Seleção de viatura
             if (action === 'vehicle') {
                 pendingComposition.setVehicle(interaction.guildId, interaction.user.id, interaction.values[0]);
                 return interaction.deferUpdate();
             }
 
-            // Seleção de oficiais adicionais
+            // Seleção de membros adicionais
             if (action === 'members') {
                 pendingComposition.setMembers(interaction.guildId, interaction.user.id, interaction.values);
                 return interaction.deferUpdate();
             }
 
-            // Confirmar com os adicionais selecionados
+            // Confirmar com os membros selecionados pelo UserSelectMenu
             if (action === 'confirm') {
-                const [, , callsign, vehiclePrefix] = parts;
-                const { memberIds, vehicle } = pendingComposition.get(interaction.guildId, interaction.user.id);
-                return startFromComposition(interaction, callsign, vehiclePrefix, memberIds, vehicle);
+                const { memberIds } = pendingComposition.get(interaction.guildId, interaction.user.id);
+                return startFromComposition(interaction, memberIds);
             }
 
-            // Unidade individual — usa a viatura selecionada (se houver)
+            // Unidade individual — descarta qualquer membro selecionado
             if (action === 'solo') {
-                const [, , callsign, vehiclePrefix] = parts;
-                const { vehicle } = pendingComposition.get(interaction.guildId, interaction.user.id);
-                return startFromComposition(interaction, callsign, vehiclePrefix, [], vehicle);
+                return startFromComposition(interaction, []);
             }
 
-            // Remodulação — abre nova montagem de unidade
+            // Remodulação — abre novo modal de callsign
             if (action === 'new') {
                 return interaction.showModal(buildStartShiftModal());
             }

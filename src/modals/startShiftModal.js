@@ -1,13 +1,10 @@
 const { ActionRowBuilder, UserSelectMenuBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const { requireConfig } = require('../utils/configGuard');
 const vehicleRepo = require('../repositories/vehicleRepository');
+const unitRepo    = require('../repositories/unitRepository');
 const pendingComposition = require('../utils/pendingComposition');
 const logger = require('../utils/logger');
 
-// Após informar Distrito/Unidade/Callsign o oficial monta a unidade:
-//  1. Seleciona o veículo (se houver cadastro)
-//  2. Seleciona oficiais adicionais
-//  3. Confirma
 module.exports = {
     customId: 'modal:start_shift',
 
@@ -18,66 +15,82 @@ module.exports = {
         if (!cfg) return;
 
         const clean = (v) => v.replace(/:/g, '').trim();
-        const district = clean(interaction.fields.getTextInputValue('district')).toUpperCase();
-        const unit     = clean(interaction.fields.getTextInputValue('unit')).toUpperCase();
-        const callsign = clean(interaction.fields.getTextInputValue('callsign'));
+        const district    = clean(interaction.fields.getTextInputValue('district')).toUpperCase();
+        const callsignNum = clean(interaction.fields.getTextInputValue('callsign'));
 
-        const fullCallsign  = `${district}-${unit}-${callsign}`;
-        const vehiclePrefix = `${district}${callsign}`;
+        // Salva a base na composição pendente; limpa seleções anteriores
+        pendingComposition.setBase(interaction.guildId, interaction.user.id, district, callsignNum);
 
-        pendingComposition.clear(interaction.guildId, interaction.user.id);
+        const [units, vehicles] = await Promise.all([
+            unitRepo.findActive(interaction.guildId),
+            vehicleRepo.findActive(interaction.guildId),
+        ]);
 
-        const vehicles = await vehicleRepo.findActive(interaction.guildId);
-
-        // Sufixo que carrega callsign e vehiclePrefix pelos botões/menus seguintes
-        const suffix = `${fullCallsign}:${vehiclePrefix}`;
-
+        const hasUnits = units.length > 0;
         const components = [];
 
-        // Seletor de viatura (presente apenas quando há viaturas cadastradas)
+        // ── Seletor de Unidade ──────────────────────────────────────
+        if (hasUnits) {
+            const unitSelect = new StringSelectMenuBuilder()
+                .setCustomId('shiftcompose:unit')
+                .setPlaceholder('Selecione a unidade (ex: A, L, K...)')
+                .addOptions(units.map(u => ({ label: u.name, value: u.name })));
+            components.push(new ActionRowBuilder().addComponents(unitSelect));
+        }
+
+        // ── Seletor de Viatura ──────────────────────────────────────
         if (vehicles.length > 0) {
             const vehicleSelect = new StringSelectMenuBuilder()
-                .setCustomId(`shiftcompose:vehicle:${suffix}`)
+                .setCustomId('shiftcompose:vehicle')
                 .setPlaceholder('Selecione a viatura')
-                .addOptions(
-                    vehicles.map(v => ({ label: v.name, value: v.name }))
-                );
+                .addOptions(vehicles.map(v => ({ label: v.name, value: v.name })));
             components.push(new ActionRowBuilder().addComponents(vehicleSelect));
         }
 
-        // Seletor de oficiais adicionais
+        // ── Seletor de Membros ──────────────────────────────────────
         const memberSelect = new UserSelectMenuBuilder()
-            .setCustomId(`shiftcompose:members:${suffix}`)
+            .setCustomId('shiftcompose:members')
             .setPlaceholder('Oficiais adicionais da unidade (opcional)')
             .setMinValues(0)
             .setMaxValues(5);
         components.push(new ActionRowBuilder().addComponents(memberSelect));
 
+        // ── Botões de confirmação ───────────────────────────────────
         const confirmBtn = new ButtonBuilder()
-            .setCustomId(`shiftcompose:confirm:${suffix}`)
+            .setCustomId('shiftcompose:confirm')
             .setLabel('Iniciar Turno')
             .setStyle(ButtonStyle.Success)
-            .setEmoji('✅');
+            .setEmoji('✅')
+            .setDisabled(hasUnits); // desabilitado até selecionar unidade
 
         const soloBtn = new ButtonBuilder()
-            .setCustomId(`shiftcompose:solo:${suffix}`)
+            .setCustomId('shiftcompose:solo')
             .setLabel('Apenas eu')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('👤');
+            .setEmoji('👤')
+            .setDisabled(hasUnits); // desabilitado até selecionar unidade
 
         components.push(new ActionRowBuilder().addComponents(confirmBtn, soloBtn));
 
-        const vehicleNote = vehicles.length > 0
-            ? 'Selecione a **viatura** e os **oficiais adicionais** (opcional).'
-            : '⚠️ Nenhuma viatura cadastrada. Use `/veiculo registrar` para adicionar.\nSelecione os **oficiais adicionais** (opcional).';
+        // Monta a linha de dicas
+        const notes = [];
+        if (hasUnits)           notes.push('Selecione a **unidade**.');
+        else                    notes.push('⚠️ Nenhuma unidade cadastrada — use `/unidade registrar`.');
+        if (vehicles.length > 0) notes.push('Selecione a **viatura** (opcional).');
+        else                    notes.push('💡 Sem viaturas cadastradas — use `/veiculo registrar`.');
+        notes.push('Selecione **oficiais adicionais** (opcional).');
+
+        const previewCallsign = hasUnits
+            ? `${district}-<unidade>-${callsignNum}`
+            : `${district}-???-${callsignNum}`;
 
         try {
             await interaction.editReply({
                 content:
                     `🚔 **Montagem da Unidade Operacional**\n` +
-                    `Callsign: **${fullCallsign}** · Prefixo: **${vehiclePrefix}**\n\n` +
-                    `Você será o **responsável** (motorista/líder).\n${vehicleNote}\n` +
-                    `Clique em **Iniciar Turno** para confirmar ou **Apenas eu** para unidade individual.`,
+                    `Distrito: **${district}** · Callsign: **${callsignNum}** → \`${previewCallsign}\`\n\n` +
+                    `Você será o **responsável** (motorista/líder).\n` +
+                    notes.join('\n'),
                 components,
             });
         } catch (err) {

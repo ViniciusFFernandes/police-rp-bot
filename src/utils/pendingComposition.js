@@ -1,25 +1,45 @@
 // Armazena temporariamente os dados de composição da unidade entre interações
-// (seleção de viatura, seleção de membros, confirmação).
-// Chaveado por (guild, ator) — não há colisão entre usuários.
+// (modal de callsign → selects de unidade/viatura/membros → confirmação).
+// Chaveado por (guild, ator). TTL de 10 minutos.
 
-const TTL_MS = 10 * 60 * 1000; // 10 minutos
+const TTL_MS = 10 * 60 * 1000;
 const store = new Map();
 
 function key(guildId, userId) {
     return `${guildId}:${userId}`;
 }
 
-function _ensure(guildId, userId) {
+function _get(guildId, userId) {
     const k = key(guildId, userId);
-    if (!store.has(k)) store.set(k, { memberIds: [], vehicle: null, ts: Date.now() });
     const entry = store.get(k);
-    entry.ts = Date.now();
+    if (!entry) return null;
+    if (Date.now() - entry.ts > TTL_MS) { store.delete(k); return null; }
     return entry;
 }
 
-function setMembers(guildId, userId, ids) {
+function _ensure(guildId, userId) {
+    const existing = _get(guildId, userId);
+    if (existing) { existing.ts = Date.now(); return existing; }
+    const entry = { district: null, callsignNum: null, unit: null, vehicle: null, memberIds: [], ts: Date.now() };
+    store.set(key(guildId, userId), entry);
+    return entry;
+}
+
+// Chamado pelo modal handler logo após receber Distrito + Callsign
+function setBase(guildId, userId, district, callsignNum) {
     const e = _ensure(guildId, userId);
-    e.memberIds = ids || [];
+    e.district    = district;
+    e.callsignNum = callsignNum;
+    // Limpa seleções anteriores quando uma nova base é definida
+    e.unit      = null;
+    e.vehicle   = null;
+    e.memberIds = [];
+    e.ts = Date.now();
+}
+
+function setUnit(guildId, userId, unit) {
+    const e = _ensure(guildId, userId);
+    e.unit = unit || null;
 }
 
 function setVehicle(guildId, userId, vehicleName) {
@@ -27,14 +47,22 @@ function setVehicle(guildId, userId, vehicleName) {
     e.vehicle = vehicleName || null;
 }
 
+function setMembers(guildId, userId, ids) {
+    const e = _ensure(guildId, userId);
+    e.memberIds = ids || [];
+}
+
+// Retorna todos os dados da composição pendente
 function get(guildId, userId) {
-    const entry = store.get(key(guildId, userId));
-    if (!entry) return { memberIds: [], vehicle: null };
-    if (Date.now() - entry.ts > TTL_MS) {
-        store.delete(key(guildId, userId));
-        return { memberIds: [], vehicle: null };
-    }
-    return { memberIds: entry.memberIds, vehicle: entry.vehicle };
+    const entry = _get(guildId, userId);
+    if (!entry) return { district: null, callsignNum: null, unit: null, vehicle: null, memberIds: [] };
+    return {
+        district:    entry.district,
+        callsignNum: entry.callsignNum,
+        unit:        entry.unit,
+        vehicle:     entry.vehicle,
+        memberIds:   entry.memberIds,
+    };
 }
 
 function clear(guildId, userId) {
@@ -49,4 +77,4 @@ const interval = setInterval(() => {
 }, 5 * 60 * 1000);
 if (interval.unref) interval.unref();
 
-module.exports = { setMembers, setVehicle, get, clear };
+module.exports = { setBase, setUnit, setVehicle, setMembers, get, clear };

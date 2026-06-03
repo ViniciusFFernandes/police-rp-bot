@@ -1,7 +1,8 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 
-// Modal de início de turno (Distrito / Unidade / Callsign).
-// Usado tanto pelo comando /iniciar quanto pelo fluxo de remodulação.
+// Modal de início de turno — coleta apenas Distrito e Callsign.
+// A Unidade é selecionada na tela seguinte (StringSelectMenu com as unidades
+// cadastradas via /unidade registrar, ou texto livre se nenhuma cadastrada).
 function buildStartShiftModal() {
     const modal = new ModalBuilder()
         .setCustomId('modal:start_shift')
@@ -14,13 +15,6 @@ function buildStartShiftModal() {
         .setRequired(true)
         .setMaxLength(5);
 
-    const unitInput = new TextInputBuilder()
-        .setCustomId('unit')
-        .setLabel('Unidade (ex: A, L, M, RPM...)')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMaxLength(10);
-
     const callsignInput = new TextInputBuilder()
         .setCustomId('callsign')
         .setLabel('Callsign (ex: 12, 07...)')
@@ -30,7 +24,6 @@ function buildStartShiftModal() {
 
     modal.addComponents(
         new ActionRowBuilder().addComponents(districtInput),
-        new ActionRowBuilder().addComponents(unitInput),
         new ActionRowBuilder().addComponents(callsignInput),
     );
 
