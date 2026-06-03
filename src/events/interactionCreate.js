@@ -3,6 +3,7 @@ const { handleCommand } = require('../handlers/commandHandler');
 const { handleButton } = require('../handlers/buttonHandler');
 const { handleModal } = require('../handlers/modalHandler');
 const guildConfigRepo = require('../repositories/guildConfigRepository');
+const { isAllowed } = require('../utils/guildWhitelist');
 const logger = require('../utils/logger');
 
 // Comandos admin não precisam de configuração prévia
@@ -16,6 +17,17 @@ module.exports = {
             if (interaction.isRepliable()) {
                 await interaction.reply({
                     content: 'Este bot só funciona dentro de servidores Discord.',
+                    ephemeral: true,
+                });
+            }
+            return;
+        }
+
+        // Bloqueia servidores não autorizados
+        if (!isAllowed(interaction.guildId)) {
+            if (interaction.isRepliable()) {
+                await interaction.reply({
+                    content: '⛔ Este bot é de uso privado e não está autorizado neste servidor.',
                     ephemeral: true,
                 });
             }

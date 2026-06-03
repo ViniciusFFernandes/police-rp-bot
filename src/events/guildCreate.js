@@ -1,11 +1,35 @@
 const { Events, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const guildConfigRepo = require('../repositories/guildConfigRepository');
+const { isAllowed } = require('../utils/guildWhitelist');
 const logger = require('../utils/logger');
 
 module.exports = {
     name: Events.GuildCreate,
     async execute(guild) {
         logger.info(`Bot adicionado ao servidor: ${guild.name} (${guild.id})`);
+
+        // Servidor não autorizado — sai imediatamente
+        if (!isAllowed(guild.id)) {
+            logger.warn(`Servidor não autorizado, saindo: ${guild.name} (${guild.id})`);
+            try {
+                const channel = guild.channels.cache
+                    .filter(c =>
+                        c.isTextBased() &&
+                        c.permissionsFor(guild.members.me)?.has(PermissionFlagsBits.SendMessages)
+                    )
+                    .sort((a, b) => a.rawPosition - b.rawPosition)
+                    .first();
+
+                if (channel) {
+                    await channel.send(
+                        '⛔ Este bot é de uso privado e não está autorizado a operar neste servidor.'
+                    );
+                }
+            } catch { /* ignora erros ao avisar */ }
+
+            await guild.leave();
+            return;
+        }
 
         const already = await guildConfigRepo.isConfigured(guild.id);
         if (already) return;
@@ -42,7 +66,7 @@ module.exports = {
             const channel = guild.channels.cache
                 .filter(c =>
                     c.isTextBased() &&
-                    c.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages)
+                    c.permissionsFor(guild.members.me)?.has(PermissionFlagsBits.SendMessages)
                 )
                 .sort((a, b) => a.rawPosition - b.rawPosition)
                 .first();
