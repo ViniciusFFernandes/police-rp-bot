@@ -2,7 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const shiftService = require('../services/shiftService');
 const pendingComposition = require('../utils/pendingComposition');
 const { requireConfig } = require('../utils/configGuard');
-const { buildStartShiftModal } = require('../utils/shiftForms');
+const { openCompositionScreen } = require('../utils/openCompositionScreen');
 const logger = require('../utils/logger');
 
 // Monta callsign e vehiclePrefix a partir dos dados guardados na composição.
@@ -147,9 +147,10 @@ module.exports = {
                 return startFromComposition(interaction, []);
             }
 
-            // Remodulação — abre novo modal de callsign
+            // Remodulação — reabre tela de composição com perfil do oficial
             if (action === 'new') {
-                return interaction.showModal(buildStartShiftModal());
+                await interaction.deferUpdate();
+                return openCompositionScreen(interaction);
             }
 
             // Remodulação recusada
