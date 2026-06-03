@@ -39,19 +39,23 @@ O **Police RP Bot** é um sistema completo para gerenciar as operações de um d
 | Problema manual | Solução do bot |
 |---|---|
 | Turno individual registrado por oficial | Unidade Operacional com líder + membros (`3-A-12`, `1-L-20`) |
-| Canal de voz criado manualmente | Canal criado automaticamente como `Viatura-Callsign` |
+| Digitar distrito e callsign a cada turno | Perfil do oficial salvo — `/iniciar` carrega automaticamente |
+| Canal de voz criado manualmente | Canal criado como `Viatura-Callsign` (ex: `Ford Explorer-3-A-12`) |
 | Digitar seriais de arma a cada turno | Arsenal de toda a equipe carregado automaticamente |
 | Escolher viatura manualmente | Seleção a partir do cadastro de viaturas do servidor |
+| Unidades digitadas livremente | Cadastro de unidades operacionais (`A`, `L`, `K`, `RPM`...) |
+| Lista de callsigns espalhada | Quadro de callsigns mantido automaticamente em canal dedicado |
 | Extravios registrados no chat | Modal dedicado + regras de permissão por papel na unidade |
 | Relatórios escritos manualmente | Gerado automaticamente com motivo de encerramento |
-| Encerrar e reabrir manualmente após mudança de equipe | Fluxo de **Remodulação** com criação imediata de nova unidade |
+| Reabrir turno manualmente após mudança de equipe | Fluxo de **Remodulação** com nova unidade imediata |
 | Histórico apenas de quem liderou | `/historico` contabiliza participações como líder e como membro |
+| Configuração restrita ao admin do Discord | Cargos gestores de configuração configuráveis pelo admin |
 | Configuração via arquivo `.env` | Tudo configurável via comandos slash, por servidor |
 | Canal de turnos poluído | Mensagens de usuários deletadas automaticamente em 10s |
 
 ### Arquitetura multi-guild
 
-Uma única instância do bot atende quantos servidores Discord forem necessários. Cada servidor possui sua própria configuração isolada no banco de dados — canais, categorias, cargos supervisores, cadastro de viaturas e todos os registros operacionais são completamente separados por `guild_id`.
+Uma única instância do bot atende quantos servidores Discord forem necessários. Cada servidor possui sua própria configuração isolada no banco de dados — canais, categorias, cargos, viaturas, unidades e todos os registros operacionais são completamente separados por `guild_id`.
 
 ---
 
@@ -110,12 +114,7 @@ NODE_ENV=production
 LOG_LEVEL=info
 ```
 
-> **Atenção:** Não existe `GUILD_ID`, `SHIFT_CHANNEL_ID`, `REPORT_CHANNEL_ID`, `WEAPON_REPORT_CHANNEL_ID`, `VOICE_CATEGORY_ID` nem `SUPERVISOR_ROLE_IDS` no `.env`. Essas configurações são feitas por servidor via `/configurar`.
-
-### Como obter os IDs no Discord
-
-1. Ative o **Modo Desenvolvedor**: Configurações → Avançado → Modo Desenvolvedor
-2. Clique com botão direito em qualquer canal, cargo ou usuário → **Copiar ID**
+> **Atenção:** Não existe `GUILD_ID`, `SHIFT_CHANNEL_ID`, `REPORT_CHANNEL_ID` nem qualquer outro ID no `.env`. Todas as configurações são feitas por servidor via `/configurar`.
 
 ---
 
@@ -143,7 +142,7 @@ LOG_LEVEL=info
 | `Manage Channels` | Criar e excluir canais de voz de turno |
 | `Send Messages` | Postar embeds e relatórios |
 | `Embed Links` | Enviar embeds formatadas |
-| `Read Message History` | Editar embeds de turno existentes |
+| `Read Message History` | Editar embeds de turno e o quadro de callsigns |
 | `Manage Messages` | Deletar mensagens de usuários no canal de turnos |
 | `View Channel` | Ver os canais configurados |
 | `Connect` | Permissão base nos canais de voz |
@@ -214,9 +213,9 @@ npm run dev
 
 Ao ser adicionado a um servidor, o bot detecta automaticamente que ele não está configurado e envia uma mensagem de boas-vindas com instruções.
 
-A configuração é feita inteiramente por **comandos slash**, por um administrador do servidor:
+A configuração é feita inteiramente por **comandos slash**. Por padrão, apenas **Administradores** do servidor podem configurar o bot — mas é possível delegar isso a cargos específicos via `/configurar cargo-gestor`.
 
-### Passo 1 — Configurar os canais
+### Passo 1 — Canais obrigatórios
 
 ```
 /configurar canal-turnos     #canal-turnos
@@ -225,16 +224,35 @@ A configuração é feita inteiramente por **comandos slash**, por um administra
 /configurar categoria-voz    Operações PD
 ```
 
-### Passo 2 — Configurar cargos supervisores
+### Passo 2 — Cargos supervisores
 
 ```
 /configurar cargo-supervisor @Supervisor Adicionar
 /configurar cargo-supervisor @Comandante Adicionar
 ```
 
-Supervisores podem gerenciar turnos de outros oficiais, consultar históricos e registrar extravios de qualquer arma.
+Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, registrar extravios de qualquer arma e editar perfis de outros oficiais.
 
-### Passo 3 — Cadastrar viaturas (opcional, mas recomendado)
+### Passo 3 — Cargos gestores de configuração (opcional)
+
+```
+/configurar cargo-gestor @Gestor Adicionar
+```
+
+Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, mas **não** podem gerenciar os próprios cargos gestores (exclusivo de Administradores).
+
+### Passo 4 — Unidades operacionais
+
+```
+/unidade registrar A
+/unidade registrar L
+/unidade registrar K
+/unidade registrar RPM
+```
+
+Com unidades cadastradas, o oficial as seleciona ao iniciar o turno. Sem unidades cadastradas, os botões de confirmação ficam desabilitados.
+
+### Passo 5 — Viaturas (opcional)
 
 ```
 /veiculo registrar Ford Explorer
@@ -244,28 +262,34 @@ Supervisores podem gerenciar turnos de outros oficiais, consultar históricos e 
 
 Com viaturas cadastradas, o oficial escolhe a viatura ao iniciar o turno e o canal de voz é criado como `Ford Explorer-3-A-12`.
 
-Sem viaturas cadastradas, o canal é criado apenas com o callsign (`3-A-12`) e o fluxo funciona normalmente.
+### Passo 6 — Canal de callsigns (opcional)
 
-### Passo 4 — Verificar configuração
+```
+/configurar canal-callsign #callsigns
+```
+
+O bot publica imediatamente um **quadro de callsigns** no canal e o mantém atualizado automaticamente sempre que um perfil for definido ou editado.
+
+### Passo 7 — Verificar configuração
 
 ```
 /configuracoes
 ```
 
-Exibe uma embed com o status de cada item. Verde = tudo configurado, vermelho = itens pendentes.
+Exibe uma embed com o status de todos os itens configurados.
 
-### Referência dos comandos de configuração
+### Referência — comandos de configuração
 
 | Comando | Descrição |
 |---|---|
-| `/configurar canal-turnos` | Canal onde as embeds de turno são postadas |
-| `/configurar canal-relatorios` | Canal de relatórios de turno encerrado |
+| `/configurar canal-turnos` | Canal das embeds de turno |
+| `/configurar canal-relatorios` | Canal de relatórios de encerramento |
 | `/configurar canal-armamento` | Canal de notificações de armamento |
-| `/configurar categoria-voz` | Categoria onde os canais de voz são criados automaticamente |
+| `/configurar categoria-voz` | Categoria dos canais de voz automáticos |
+| `/configurar canal-callsign` | Canal do quadro de callsigns automático |
 | `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
-| `/configuracoes` | Exibe todas as configurações atuais do servidor |
-
-> Todos os comandos de configuração exigem permissão de **Administrador**.
+| `/configurar cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
+| `/configuracoes` | Exibe status de todas as configurações |
 
 ---
 
@@ -389,11 +413,13 @@ police-rp-bot/
 ├── src/
 │   ├── commands/
 │   │   ├── admin/
-│   │   │   ├── configurar.js        # /configurar (5 subcomandos)
+│   │   │   ├── configurar.js        # /configurar (7 subcomandos)
 │   │   │   ├── configuracoes.js     # /configuracoes
-│   │   │   └── veiculo.js           # /veiculo registrar|listar|remover
+│   │   │   ├── veiculo.js           # /veiculo registrar|listar|remover
+│   │   │   └── unidade.js           # /unidade registrar|listar|remover
 │   │   ├── shift/
-│   │   │   └── iniciar.js           # /iniciar → modal de callsign
+│   │   │   ├── iniciar.js           # /iniciar → carrega perfil e abre composição
+│   │   │   └── oficial.js           # /oficial definir|ver
 │   │   ├── history/
 │   │   │   └── historico.js         # /historico resumo|turnos|arsenal
 │   │   └── weapon/
@@ -402,33 +428,35 @@ police-rp-bot/
 │   ├── events/
 │   │   ├── ready.js
 │   │   ├── guildCreate.js           # Detecta novo servidor → boas-vindas + guia
-│   │   ├── interactionCreate.js     # Guard de configuração + roteamento (comandos, botões, selects, modals)
+│   │   ├── interactionCreate.js     # Guard de configuração + roteamento
 │   │   └── messageCreate.js         # Auto-delete 10s no canal de turnos
 │   │
 │   ├── buttons/
 │   │   ├── shiftButtons.js          # Pausar, Retornar, Arma Perdida, Adicionar Arma, Encerrar
-│   │   ├── shiftCompose.js          # Seleção de viatura/membros + confirmação de início
-│   │   └── shiftEnd.js              # Seleção de motivo de encerramento + fluxo de remodulação
+│   │   ├── shiftCompose.js          # Seleção de unidade/viatura/membros + confirmação
+│   │   └── shiftEnd.js              # Motivo de encerramento + fluxo de remodulação
 │   │
 │   ├── modals/
-│   │   ├── startShiftModal.js       # Exibe tela de montagem da unidade (viatura + membros)
 │   │   ├── endReasonModal.js        # Encerramento com motivo "Outro" (texto livre)
 │   │   ├── weaponLossModal.js       # Extravio durante turno
 │   │   └── addWeaponModal.js        # Adição de arma ao turno
 │   │
 │   ├── services/
-│   │   ├── shiftService.js          # Toda a lógica de turno (start/pause/resume/end/loss/addWeapon)
+│   │   ├── shiftService.js          # Lógica de turno (start/pause/resume/end/loss/addWeapon)
+│   │   ├── callsignBoardService.js  # Cria/edita a mensagem do quadro de callsigns
 │   │   └── guildConfigService.js    # Lógica de configuração por servidor
 │   │
 │   ├── repositories/
-│   │   ├── userRepository.js        # upsert, findByDiscordId, getStats (participação total)
-│   │   ├── shiftRepository.js       # CRUD + findActiveByParticipant + findEndedByUser
-│   │   ├── shiftMemberRepository.js # Membros da unidade (líder + adicionais)
+│   │   ├── userRepository.js
+│   │   ├── shiftRepository.js
+│   │   ├── shiftMemberRepository.js
 │   │   ├── pauseRepository.js
 │   │   ├── weaponRepository.js
 │   │   ├── weaponLossRepository.js
-│   │   ├── officialWeaponRepository.js  # Arsenal pessoal + getArsenalHistory
-│   │   ├── vehicleRepository.js     # Cadastro de viaturas por servidor
+│   │   ├── officialWeaponRepository.js
+│   │   ├── officialProfileRepository.js  # Perfil operacional (distrito + callsign)
+│   │   ├── vehicleRepository.js
+│   │   ├── unitRepository.js
 │   │   └── guildConfigRepository.js
 │   │
 │   ├── database/
@@ -441,26 +469,29 @@ police-rp-bot/
 │   │
 │   ├── utils/
 │   │   ├── logger.js
-│   │   ├── embeds.js                # Builders de embed + formatTeam + endReasonLabel
+│   │   ├── embeds.js
 │   │   ├── time.js
-│   │   ├── permissions.js           # isSupervisor, isAdmin, canManageShift
+│   │   ├── permissions.js           # isSupervisor, isAdmin, isConfigManager, canManageShift
 │   │   ├── configGuard.js
-│   │   ├── pendingComposition.js    # Store temporário de viatura + membros entre interações
-│   │   ├── shiftForms.js            # buildStartShiftModal (reutilizado no fluxo de remodulação)
+│   │   ├── pendingComposition.js    # Store temporário entre interações de composição
+│   │   ├── openCompositionScreen.js # Abre tela de montagem da unidade (reutilizado)
 │   │   └── guildWhitelist.js
 │   │
 │   └── index.js
 │
 ├── database/
 │   ├── migrations/
-│   │   ├── 001_initial_schema.sql       # Tabelas base: users, shifts, weapons, pauses, weapon_losses
-│   │   ├── 002_guild_config.sql         # guild_config (configurações por servidor)
-│   │   ├── 003_add_guild_id.sql         # Isolamento multi-guild em shifts e weapons
+│   │   ├── 001_initial_schema.sql       # users, shifts, weapons, pauses, weapon_losses
+│   │   ├── 002_guild_config.sql         # guild_config
+│   │   ├── 003_add_guild_id.sql         # guild_id em shifts e weapons
 │   │   ├── 004_weapons_guild_unique.sql # Constraint serial+guild
 │   │   ├── 005_official_weapons.sql     # Arsenal pessoal por oficial
-│   │   ├── 006_bot_config.sql           # Configurações globais do bot
-│   │   ├── 007_shift_members.sql        # Unidade operacional: shift_members + end_reason
-│   │   └── 008_vehicles.sql             # Cadastro de viaturas + shifts.vehicle_name
+│   │   ├── 006_bot_config.sql           # bot_config
+│   │   ├── 007_shift_members.sql        # shift_members + end_reason em shifts
+│   │   ├── 008_vehicles.sql             # vehicles + vehicle_name em shifts
+│   │   ├── 009_units.sql                # Unidades operacionais por servidor
+│   │   ├── 010_config_manager_roles.sql # config_manager_role_ids em guild_config
+│   │   └── 011_official_profiles.sql    # Perfil operacional do oficial
 │   └── migrate.js
 │
 ├── scripts/
@@ -478,79 +509,75 @@ police-rp-bot/
 
 ## Funcionalidades
 
-### Comandos operacionais (todos os membros)
+### Perfil operacional do oficial
 
-#### `/iniciar` — Unidade Operacional
+Antes de usar `/iniciar` pela primeira vez, cada oficial deve configurar seu perfil com distrito e callsign. Isso elimina a necessidade de digitar essas informações a cada turno.
 
-Inicia um turno como **Unidade Operacional** (ex: `3-A-12`, `1-L-20`, `3-AIR-01`).
+#### `/oficial definir <distrito> <callsign> [@usuario]`
 
-**Passo 1 — Modal de callsign**
+Define o distrito e callsign do oficial neste servidor.
 
-Preencha três campos:
+- **Sem `@usuario`:** define o próprio perfil.
+- **Com `@usuario`:** define o perfil de outro oficial — restrito a supervisores e administradores.
 
-| Campo | Exemplo |
-|---|---|
-| Distrito | `3` |
-| Unidade | `A` |
-| Callsign | `12` |
+```
+/oficial definir distrito:3 callsign:12
+/oficial definir distrito:1 callsign:07 usuario:@João
+```
 
-O bot monta automaticamente o callsign completo (`3-A-12`) e o prefixo da viatura (`312`).
+#### `/oficial ver [@usuario]`
 
-**Passo 2 — Montagem da unidade**
-
-Após o modal, é exibida uma tela efêmera com:
-
-- **Seletor de viatura** (aparece apenas se houver viaturas cadastradas via `/veiculo registrar`).
-- **Seletor de oficiais adicionais** (UserSelectMenu, até 5 — opcional).
-- Botão **Iniciar Turno** (confirma com os adicionais selecionados) ou **Apenas eu** (unidade individual).
-
-Quem executou o comando é automaticamente o **responsável** (motorista/líder) da unidade.
-
-**O que o bot faz ao confirmar:**
-
-- Cria **um único turno** para toda a unidade e registra cada participante na tabela `shift_members` com papel `LEADER` ou `MEMBER`.
-- Cria **um único canal de voz** nomeado como `Viatura-Callsign` (ex: `Ford Explorer-3-A-12`). Sem viatura cadastrada, usa só o callsign.
-- **Vincula automaticamente** ao turno as armas ativas do arsenal pessoal de **todos os participantes** — cada arma mantém o vínculo com o seu dono real.
-
-> **Composição fixa:** a equipe da unidade é definida no início e não pode ser alterada durante o turno. Qualquer mudança de composição (entrada/saída de oficial, troca de motorista, nova formação) deve ser feita encerrando o turno com motivo **Remodulação** e iniciando uma nova unidade.
+Exibe o perfil operacional. Ver perfil de outros é restrito a supervisores e administradores.
 
 ---
 
-#### `/arma registrar <nome> <serie>`
+### Quadro de Callsigns
 
-Cadastra uma arma no **arsenal pessoal** do oficial, vinculada ao servidor.
-A arma será carregada automaticamente em todos os próximos turnos do oficial, sem precisar digitar o serial.
-Envia notificação no canal de armamento.
+Quando o canal de callsigns está configurado (`/configurar canal-callsign`), o bot mantém uma **mensagem única e persistente** nesse canal com o distrito e callsign de todos os oficiais configurados.
 
-#### `/arma arsenal`
+```
+📋 Quadro de Callsigns Operacionais
 
-Lista as **armas ativas** do arsenal do oficial (disponíveis e em uso).
-Armas extraviadas não são exibidas — ficam visíveis apenas para supervisores via `/historico arsenal`.
+@Vinicius — Distrito `3` · Callsign `12`
+@João     — Distrito `1` · Callsign `07`
+@Carlos   — Distrito `3` · Callsign `20`
+```
 
-#### `/arma extravio <serie> [observacao]`
+A mensagem é editada automaticamente sempre que um perfil é criado ou alterado. Se a mensagem for deletada manualmente, é recriada na próxima atualização.
 
-Registra o extravio de uma arma **fora de um turno ativo**.
+---
 
-- Oficiais só podem reportar suas próprias armas.
-- Admins e supervisores podem reportar qualquer arma.
-- Se o oficial estiver em uma unidade ativa, é redirecionado para o botão **Arma Perdida** na embed do turno.
+### Iniciar turno — `/iniciar`
 
-#### `/arma consultar <serie>`
+Com o perfil configurado, `/iniciar` carrega distrito e callsign automaticamente e abre a **tela de montagem da unidade**:
 
-Consulta o status atual da arma, nome cadastrado no arsenal, último oficial, último callsign, último turno e histórico completo de extravios.
+| Seletor | Quando aparece | Obrigatoriedade |
+|---|---|---|
+| **Unidade** (`A`, `L`, `K`...) | Sempre que houver unidades cadastradas | Obrigatório — botões desabilitados até selecionar |
+| **Viatura** | Quando houver viaturas cadastradas | Opcional |
+| **Oficiais adicionais** | Sempre | Opcional (até 5) |
+
+Botões: **Iniciar Turno** (com os adicionais selecionados) ou **Apenas eu** (unidade individual).
+
+O callsign final é montado como `Distrito-Unidade-Callsign` (ex: `3-A-12`).
+
+**Ao confirmar, o bot:**
+- Cria **um único turno** para toda a unidade, registrando cada participante (`LEADER` / `MEMBER`).
+- Cria **um único canal de voz** nomeado como `Viatura-Callsign` (ex: `Ford Explorer-3-A-12`). Sem viatura, usa só o callsign.
+- **Vincula automaticamente** as armas ativas do arsenal de **todos os participantes**.
+
+> **Composição fixa:** a equipe é definida no início. Para alterar (entrada/saída de membro, troca de motorista), encerre com motivo **Remodulação** e inicie nova unidade.
 
 ---
 
 ### Botões da embed de turno
 
-A embed de turno possui dois grupos de botões:
-
 **Grupo 1 — Controle de turno**
 
 | Botão | Ação |
 |---|---|
-| **Pausar** | Registra pausa com timestamp; embed fica amarela |
-| **Retornar ao Serviço** | Encerra a pausa, acumula duração; embed fica verde |
+| **Pausar** | Registra pausa; embed fica amarela |
+| **Retornar ao Serviço** | Encerra a pausa; embed fica verde |
 | **Arma Perdida** | Abre modal (série + observação); aplica regras de permissão; envia relatório |
 | **Encerrar Turno** | Exibe seleção de motivo; calcula tempos; envia relatório; exclui canal de voz |
 
@@ -558,141 +585,141 @@ A embed de turno possui dois grupos de botões:
 
 | Botão | Ação |
 |---|---|
-| **Adicionar Arma** | Abre modal (nome + série); registra no arsenal e no turno; envia notificação |
-
-Múltiplas pausas por turno são suportadas.
-Supervisores e admins podem clicar nos botões de turnos de outros oficiais.
-
----
+| **Adicionar Arma** | Abre modal (nome + série); registra no arsenal e no turno |
 
 #### Encerramento e motivo
 
-Ao clicar em **Encerrar Turno**, um menu de seleção pergunta o motivo:
-
 | Motivo | Comportamento |
 |---|---|
-| **Fim de Patrulha** | Gera relatório, encerra canal de voz, desativa embed. |
-| **Remodulação** | Gera relatório, encerra canal de voz, pergunta se deseja **iniciar uma nova unidade**. Se confirmado, abre imediatamente o fluxo de `/iniciar` com nova composição e viatura. |
-| **Outro** | Abre um campo de texto (opcional) para digitar um motivo personalizado antes de encerrar. |
+| **Fim de Patrulha** | Gera relatório, encerra canal de voz, desativa embed |
+| **Remodulação** | Gera relatório, encerra canal de voz, oferece iniciar nova unidade imediatamente |
+| **Outro** | Abre campo de texto opcional para motivo personalizado antes de encerrar |
 
-O motivo é salvo no banco (`shifts.end_reason` / `shifts.end_reason_note`) e exibido no relatório de encerramento.
-
-**Exemplo de fluxo de remodulação:**
-
-```
-3-A-12 (Vinicius + João) → Remodulação → novo /iniciar → 1-L-20 (Vinicius)
-                                                        → 3-A-12 (Vinicius + Carlos)
-```
+O motivo é salvo no banco e exibido no relatório.
 
 ---
 
 ### Canal de turnos — limpeza automática
 
-O canal de turnos é mantido limpo:
-- Qualquer mensagem enviada por usuários nesse canal é **deletada após 10 segundos**.
+- Qualquer mensagem enviada por usuários no canal de turnos é **deletada após 10 segundos**.
 - Apenas as embeds do bot permanecem visíveis.
 
 ---
 
-### Comandos de supervisão (somente supervisores e admins)
+### Armamentos
 
-#### `/historico resumo @usuario`
+#### `/arma registrar <nome> <serie>`
+Cadastra uma arma no arsenal pessoal do oficial. Será carregada automaticamente nos próximos turnos.
 
-Visão geral consolidada do oficial: total de turnos encerrados, tempo efetivo, tempo em pausa, pausas realizadas e armas extraviadas.
+#### `/arma arsenal`
+Lista as armas ativas do arsenal (disponíveis e em uso). Extraviadas são visíveis apenas para supervisores via `/historico arsenal`.
 
-Contabiliza **todas as participações** — tanto turnos em que o oficial foi **responsável** quanto turnos em que foi **membro adicional** da unidade.
+#### `/arma extravio <serie> [observacao]`
+Registra extravio fora de um turno ativo. Dentro de um turno, usa o botão **Arma Perdida** na embed.
 
-#### `/historico turnos @usuario [pagina]`
-
-Lista paginada (8 por página) dos turnos encerrados em que o oficial participou:
-
-- Callsign, viatura e prefixo
-- Horário de início e fim
-- Tempo efetivo, tempo em pausa e quantidade de pausas
-- Quantidade de armas usadas
-
-#### `/historico arsenal @usuario`
-
-Visão completa do arsenal do oficial, **incluindo armas extraviadas**:
-
-- Status atual (disponível, em uso, extraviada)
-- Data de cadastro
-- Quantos turnos a arma foi utilizada e data do último uso
-- Quantidade de extravios registrados
-
-> Os três subcomandos de `/historico` são **restritos a supervisores e administradores**.
+#### `/arma consultar <serie>`
+Status atual, último oficial, último callsign e histórico completo de extravios.
 
 ---
 
-### Comandos administrativos (somente Administradores)
+### Histórico (supervisores e admins)
+
+#### `/historico resumo @usuario`
+Total de turnos, tempo efetivo, tempo em pausa, pausas e extravios. Contabiliza **todas as participações** — como líder e como membro adicional.
+
+#### `/historico turnos @usuario [pagina]`
+Lista paginada (8 por página) dos turnos encerrados em que o oficial participou.
+
+#### `/historico arsenal @usuario`
+Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
+
+---
+
+### Comandos administrativos
 
 #### Configuração do servidor
 
 | Comando | Opção | Descrição |
 |---|---|---|
-| `/configurar` | `canal-turnos #canal` | Canal das embeds de turno |
-| `/configurar` | `canal-relatorios #canal` | Canal de relatórios de encerramento |
-| `/configurar` | `canal-armamento #canal` | Canal de notificações de armamento |
-| `/configurar` | `categoria-voz Categoria` | Categoria dos canais de voz automáticos |
-| `/configurar` | `cargo-supervisor @Cargo Adicionar/Remover` | Gerencia cargos supervisores |
+| `/configurar` | `canal-turnos` | Canal das embeds de turno |
+| `/configurar` | `canal-relatorios` | Canal de relatórios de encerramento |
+| `/configurar` | `canal-armamento` | Canal de notificações de armamento |
+| `/configurar` | `categoria-voz` | Categoria dos canais de voz automáticos |
+| `/configurar` | `canal-callsign` | Canal do quadro de callsigns automático |
+| `/configurar` | `cargo-supervisor` | Gerencia cargos supervisores |
+| `/configurar` | `cargo-gestor` | Gerencia cargos gestores de configuração (somente Admins) |
 | `/configuracoes` | — | Exibe status de todas as configurações |
 
-#### Cadastro de viaturas
+#### Unidades operacionais
 
 | Comando | Descrição |
 |---|---|
-| `/veiculo registrar <nome>` | Cadastra uma nova viatura disponível (ex: `Ford Explorer`, `Tesla Model Y`) |
-| `/veiculo listar` | Exibe todas as viaturas ativas e desativadas do servidor |
-| `/veiculo remover <nome>` | Desativa a viatura (não apaga — preserva histórico dos turnos anteriores) |
+| `/unidade registrar <nome>` | Cadastra uma unidade (ex: `A`, `L`, `K`, `RPM`, `AIR`) |
+| `/unidade listar` | Exibe todas as unidades ativas e desativadas |
+| `/unidade remover <nome>` | Desativa a unidade |
 
-Com viaturas cadastradas, o oficial escolhe a viatura na tela de montagem da unidade ao executar `/iniciar`.
-O canal de voz é criado como `Viatura-Callsign` (ex: `Ford Explorer-3-A-12`).
+> Limite de **25 unidades ativas** por servidor.
 
-> Limite de **25 viaturas ativas** por servidor.
+#### Viaturas
+
+| Comando | Descrição |
+|---|---|
+| `/veiculo registrar <nome>` | Cadastra uma viatura (ex: `Ford Explorer`, `Tesla Model Y`) |
+| `/veiculo listar` | Exibe todas as viaturas ativas e desativadas |
+| `/veiculo remover <nome>` | Desativa a viatura |
+
+> Limite de **25 viaturas ativas** por servidor. O canal de voz é criado como `Viatura-Callsign`.
 
 ---
 
 ## Controle de permissões
 
-| Ação | Oficial | Responsável da Unidade | Supervisor | Admin |
-|---|:---:|:---:|:---:|:---:|
-| Iniciar turno | ✅ | ✅ | ✅ | ✅ |
-| Pausar / Retornar (própria unidade) | ✅ | ✅ | ✅ | ✅ |
-| Pausar / Retornar (unidade alheia) | ❌ | ❌ | ✅ | ✅ |
-| Arma Perdida — própria arma | ✅ | ✅ | ✅ | ✅ |
-| Arma Perdida — arma de outro membro da unidade | ❌ | ✅ | ✅ | ✅ |
-| Encerrar turno da própria unidade | ✅ | ✅ | ✅ | ✅ |
-| Encerrar turno alheio | ❌ | ❌ | ✅ | ✅ |
-| `/arma registrar` | ✅ | ✅ | ✅ | ✅ |
-| `/arma arsenal` (somente ativas) | ✅ | ✅ | ✅ | ✅ |
-| `/arma extravio` (própria arma) | ✅ | ✅ | ✅ | ✅ |
-| `/arma extravio` (qualquer arma) | ❌ | ❌ | ✅ | ✅ |
-| `/historico` (todos os subcomandos) | ❌ | ❌ | ✅ | ✅ |
-| `/configurar` e `/veiculo` | ❌ | ❌ | ❌ | ✅ |
+| Ação | Oficial | Responsável da Unidade | Supervisor | Gestor Config | Admin |
+|---|:---:|:---:|:---:|:---:|:---:|
+| `/oficial definir` (próprio perfil) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/oficial definir` (perfil alheio) | ❌ | ❌ | ✅ | ❌ | ✅ |
+| `/oficial ver` (próprio) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/oficial ver` (alheio) | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Iniciar turno | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Pausar / Retornar (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Pausar / Retornar (unidade alheia) | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Arma Perdida — própria arma | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arma Perdida — arma de outro membro | ❌ | ✅ | ✅ | ❌ | ✅ |
+| Encerrar turno (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Encerrar turno alheio | ❌ | ❌ | ✅ | ❌ | ✅ |
+| `/arma registrar` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma arsenal` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma extravio` (própria arma) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma extravio` (qualquer arma) | ❌ | ❌ | ✅ | ❌ | ✅ |
+| `/historico` | ❌ | ❌ | ✅ | ❌ | ✅ |
+| `/configurar`, `/configuracoes`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ✅ | ✅ |
+| `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ✅ |
 
-> **Responsável da unidade** = o oficial que executou `/iniciar` (papel `LEADER` em `shift_members`).
-> Pode gerenciar qualquer arma vinculada ao turno da sua própria unidade, mas não de unidades alheias.
+> **Responsável da unidade** = oficial que executou `/iniciar` (papel `LEADER`).
+> **Gestor de Configuração** = cargo definido via `/configurar cargo-gestor`. Pode configurar o bot mas não pode gerenciar os próprios cargos gestores.
 
 ---
 
 ## Banco de dados
 
 O sistema usa **PostgreSQL** com migrações versionadas em `database/migrations/`.
-Execute `npm run db:migrate` para aplicar todas as migrações pendentes. O processo é idempotente — migrações já executadas são puladas.
+Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 
-### Tabelas principais
+### Tabelas
 
 | Tabela | Descrição |
 |---|---|
 | `users` | Oficiais registrados (upsert automático ao interagir) |
-| `shifts` | Turnos/unidades operacionais. `user_id` aponta para o líder |
-| `shift_members` | Participantes de cada unidade (`role`: `LEADER` ou `MEMBER`) |
-| `pauses` | Pausas de cada turno com timestamps e duração |
+| `official_profiles` | Perfil operacional por oficial + servidor (distrito, callsign) |
+| `shifts` | Turnos/unidades operacionais — `user_id` é o líder |
+| `shift_members` | Participantes de cada unidade (`LEADER` / `MEMBER`) |
+| `pauses` | Pausas com timestamps e duração |
 | `weapons` | Estado atual de cada arma no servidor |
 | `official_weapons` | Arsenal pessoal por oficial + servidor |
-| `weapon_losses` | Histórico de extravios vinculados ao turno e ao dono da arma |
+| `weapon_losses` | Histórico de extravios |
 | `vehicles` | Viaturas disponíveis por servidor |
-| `guild_config` | Configurações de canal, categoria e cargos por servidor |
+| `units` | Unidades operacionais disponíveis por servidor |
+| `guild_config` | Todas as configurações do servidor (canais, cargos, IDs) |
 | `bot_config` | Configurações globais do bot |
 | `migrations` | Controle de migrações executadas |
 
@@ -703,24 +730,40 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes. O proc
 | `user_id` | Líder da unidade |
 | `callsign` | Callsign completo (`3-A-12`) |
 | `vehicle_prefix` | Prefixo numérico legado (`312`) |
-| `vehicle_name` | Nome da viatura selecionada (`Ford Explorer`) — `NULL` em turnos legados |
-| `weapon_serials` | Array com os seriais de todas as armas vinculadas à unidade |
+| `vehicle_name` | Nome da viatura selecionada (`Ford Explorer`) |
+| `weapon_serials` | Array com os seriais de todas as armas da unidade |
 | `status` | `active` / `paused` / `ended` |
 | `end_reason` | `patrol_end` / `remodulation` / `other` |
 | `end_reason_note` | Texto livre quando `end_reason = 'other'` |
+
+### Chaves relevantes em `guild_config`
+
+| Chave | Descrição |
+|---|---|
+| `shift_channel_id` | Canal das embeds de turno |
+| `report_channel_id` | Canal de relatórios |
+| `weapon_report_channel_id` | Canal de armamento |
+| `voice_category_id` | Categoria dos canais de voz |
+| `callsign_channel_id` | Canal do quadro de callsigns |
+| `callsign_message_id` | ID da mensagem persistente do quadro (interno) |
+| `supervisor_role_ids` | JSON array de cargos supervisores |
+| `config_manager_role_ids` | JSON array de cargos gestores de configuração |
 
 ### Migrações
 
 | Arquivo | O que faz |
 |---|---|
-| `001_initial_schema.sql` | Tabelas base: `users`, `shifts`, `weapons`, `pauses`, `weapon_losses`, `voice_channels` |
-| `002_guild_config.sql` | Tabela `guild_config` (substitui `configuration`) |
-| `003_add_guild_id.sql` | Coluna `guild_id` em `shifts` e `weapons` |
-| `004_weapons_guild_unique.sql` | Constraint única por `(serial_number, guild_id)` |
-| `005_official_weapons.sql` | Tabela `official_weapons` (arsenal pessoal) |
-| `006_bot_config.sql` | Tabela `bot_config` |
-| `007_shift_members.sql` | Tabela `shift_members` + colunas `end_reason` / `end_reason_note` em `shifts` |
-| `008_vehicles.sql` | Tabela `vehicles` + coluna `vehicle_name` em `shifts` |
+| `001_initial_schema.sql` | Tabelas base |
+| `002_guild_config.sql` | `guild_config` |
+| `003_add_guild_id.sql` | `guild_id` em `shifts` e `weapons` |
+| `004_weapons_guild_unique.sql` | Constraint `(serial_number, guild_id)` |
+| `005_official_weapons.sql` | Arsenal pessoal |
+| `006_bot_config.sql` | `bot_config` |
+| `007_shift_members.sql` | `shift_members` + `end_reason` em `shifts` |
+| `008_vehicles.sql` | `vehicles` + `vehicle_name` em `shifts` |
+| `009_units.sql` | Unidades operacionais por servidor |
+| `010_config_manager_roles.sql` | `config_manager_role_ids` em `guild_config` |
+| `011_official_profiles.sql` | Perfil operacional do oficial |
 
 ---
 
@@ -728,8 +771,8 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes. O proc
 
 - Ao ser adicionado a um novo servidor, o bot envia automaticamente um guia de configuração inicial.
 - Comandos operacionais são bloqueados com aviso amigável enquanto o servidor não estiver configurado.
-- Todos os dados (turnos, armas, viaturas, relatórios, configurações) são completamente isolados por `guild_id`.
-- Uma única instância do bot pode atender dezenas de servidores sem interferência entre eles.
+- Todos os dados são completamente isolados por `guild_id`.
+- Uma única instância atende dezenas de servidores sem interferência.
 
 ---
 
@@ -748,35 +791,38 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes. O proc
 - Execute os 4 comandos `/configurar` obrigatórios como administrador
 - Use `/configuracoes` para ver quais itens estão pendentes
 
-### Erro ao iniciar turno
-- Verifique se o banco foi migrado: `npm run db:migrate`
-- Confirme que `DATABASE_URL` aponta para o banco correto
+### Erro ao iniciar turno — "configure seu perfil"
+- Execute `/oficial definir distrito:X callsign:Y` antes de usar `/iniciar`
 
-### Arsenal vazio ao iniciar turno
-- Cadastre armas com `/arma registrar <nome> <serie>` antes de iniciar o turno
-- Ou use o botão **Adicionar Arma** na embed após iniciar
+### Botões desabilitados ao iniciar turno
+- Nenhuma unidade cadastrada — use `/unidade registrar` para adicionar pelo menos uma
 
 ### Seletor de viatura não aparece no /iniciar
-- Cadastre viaturas com `/veiculo registrar` antes de iniciar um turno
-- Sem viaturas cadastradas o fluxo funciona normalmente, sem seletor
+- Cadastre viaturas com `/veiculo registrar` — sem viaturas o seletor não aparece
+
+### Arsenal vazio ao iniciar turno
+- Cadastre armas com `/arma registrar <nome> <serie>` ou use o botão **Adicionar Arma** na embed
 
 ### Armas extraviadas sendo incluídas no turno
-- Armas com status `lost` são automaticamente excluídas ao carregar o arsenal
-- Se o problema persistir, execute `npm run db:migrate`
+- Armas com status `lost` são excluídas automaticamente; execute `npm run db:migrate` se persistir
 
 ### Oficial adicional não pode ser incluído na unidade
-- O oficial já pode estar em uma unidade ativa — peça para encerrar o turno atual primeiro
+- O oficial já está em uma unidade ativa — peça para encerrar o turno atual primeiro
+
+### Quadro de callsigns não atualiza
+- Verifique se o bot tem permissão `Read Message History` no canal de callsigns
+- Se a mensagem foi deletada, ela será recriada automaticamente na próxima atualização de perfil
 
 ### Supervisor não consegue fechar turno de outro oficial
-- Confirme que o cargo do supervisor está configurado via `/configurar cargo-supervisor`
+- Confirme que o cargo está configurado via `/configurar cargo-supervisor`
 - O supervisor deve clicar nos botões diretamente na embed do turno
 
 ### Canal de voz não é criado
 - Confirme que a categoria foi configurada via `/configurar categoria-voz`
 - Verifique se o bot tem permissão `Manage Channels` na categoria
 
-### Mensagens não são deletadas no canal de turnos
-- Verifique se o bot tem permissão `Manage Messages` no canal de turnos
+### Gestor de configuração não consegue ver os comandos
+- Os comandos `/configurar`, `/configuracoes`, `/veiculo` e `/unidade` não têm restrição de visibilidade no Discord — todos os membros podem vê-los, mas apenas admins e gestores conseguem executá-los
 
 ### Ver logs em produção (PM2)
 ```bash
