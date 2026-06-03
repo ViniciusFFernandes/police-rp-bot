@@ -50,7 +50,8 @@ module.exports = {
             return handleCommand(interaction);
         }
 
-        if (interaction.isButton()) {
+        // Botões e menus de seleção compartilham o roteamento por prefixo de customId
+        if (interaction.isButton() || interaction.isAnySelectMenu()) {
             return handleButton(interaction);
         }
 

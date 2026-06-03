@@ -1,44 +1,93 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const db = require('../database/pool');
 const shiftRepo = require('../repositories/shiftRepository');
+const shiftMemberRepo = require('../repositories/shiftMemberRepository');
 const pauseRepo = require('../repositories/pauseRepository');
 const weaponRepo = require('../repositories/weaponRepository');
 const weaponLossRepo = require('../repositories/weaponLossRepository');
 const officialWeaponRepo = require('../repositories/officialWeaponRepository');
 const userRepo = require('../repositories/userRepository');
+const { isAdmin, isSupervisor } = require('../utils/permissions');
 const { buildShiftEmbed, buildShiftButtons, buildReportEmbed, buildWeaponLossEmbed, buildWeaponAddedEmbed } = require('../utils/embeds');
 const logger = require('../utils/logger');
 
-async function startShift(interaction, cfg, { callsign, vehiclePrefix }) {
+// Inicia um turno como UNIDADE OPERACIONAL.
+// Quem executa o comando é o líder (motorista/responsável); additionalDiscordIds
+// são os oficiais adicionais da unidade. É criado um único turno, um único canal
+// de voz, e os armamentos de TODOS os participantes são vinculados automaticamente.
+async function startShift(interaction, cfg, { callsign, vehiclePrefix, additionalDiscordIds = [] }) {
     const member = interaction.member;
     const guild = interaction.guild;
 
-    const dbUser = await userRepo.upsert(member.id, member.user.username, member.displayName);
+    const leader = await userRepo.upsert(member.id, member.user.username, member.displayName);
 
-    const existing = await shiftRepo.findActiveByUser(dbUser.id, guild.id);
+    const existing = await shiftRepo.findActiveByParticipant(leader.id, guild.id);
     if (existing) {
-        return { error: 'Você já possui um turno ativo. Encerre-o antes de iniciar um novo.' };
+        return { error: 'Você já está em uma unidade ativa. Encerre o turno atual antes de iniciar um novo.' };
     }
 
-    // Carrega arsenal cadastrado do oficial, excluindo armas extraviadas
-    const officialWeapons = await officialWeaponRepo.findByUser(dbUser.id, guild.id, { excludeLost: true });
-    const weaponSerials = officialWeapons.map(w => w.serial_number);
+    // Resolve os oficiais adicionais (ignora duplicados e o próprio líder)
+    const participants = [{ userId: leader.id, discordId: member.id, role: 'LEADER' }];
+    const seen = new Set([member.id]);
+    const conflicts = [];
+
+    for (const discordId of additionalDiscordIds) {
+        if (seen.has(discordId)) continue;
+        seen.add(discordId);
+
+        let m;
+        try {
+            m = await guild.members.fetch(discordId);
+        } catch {
+            continue; // membro não encontrado no servidor — ignora
+        }
+        if (m.user.bot) continue;
+
+        const u = await userRepo.upsert(m.id, m.user.username, m.displayName);
+        const active = await shiftRepo.findActiveByParticipant(u.id, guild.id);
+        if (active) {
+            conflicts.push(`<@${m.id}>`);
+            continue;
+        }
+        participants.push({ userId: u.id, discordId: m.id, role: 'MEMBER' });
+    }
+
+    if (conflicts.length > 0) {
+        return { error: `Os seguintes oficiais já estão em uma unidade ativa: ${conflicts.join(', ')}. Encerre os turnos deles antes de incluí-los.` };
+    }
+
+    // Une os arsenais de todos os participantes (excluindo armas extraviadas).
+    // Cada arma mantém o vínculo com o seu dono real (last_user_id).
+    const serialToOwner = new Map();
+    const weaponSerials = [];
+    for (const p of participants) {
+        const arsenal = await officialWeaponRepo.findByUser(p.userId, guild.id, { excludeLost: true });
+        for (const w of arsenal) {
+            if (!serialToOwner.has(w.serial_number)) {
+                serialToOwner.set(w.serial_number, p.userId);
+                weaponSerials.push(w.serial_number);
+            }
+        }
+    }
 
     let shift, voiceChannel;
 
     await db.transaction(async (client) => {
         shift = await shiftRepo.create(client, {
-            userId: dbUser.id,
+            userId: leader.id,
             guildId: guild.id,
             callsign,
             vehiclePrefix,
             weaponSerials,
         });
+        for (const p of participants) {
+            await shiftMemberRepo.add(client, shift.id, p.userId, p.role);
+        }
     });
 
     for (const serial of weaponSerials) {
         await weaponRepo.upsert(serial, guild.id);
-        await weaponRepo.setInUse(serial, guild.id, dbUser.id, shift.id);
+        await weaponRepo.setInUse(serial, guild.id, serialToOwner.get(serial), shift.id);
     }
 
     try {
@@ -60,6 +109,7 @@ async function startShift(interaction, cfg, { callsign, vehiclePrefix }) {
     }
 
     shift.weapon_losses = [];
+    shift.members = await shiftMemberRepo.findByShift(shift.id);
     const embed = buildShiftEmbed(shift, member.user, shift.voice_channel_id);
     const buttons = buildShiftButtons('active');
 
@@ -69,7 +119,7 @@ async function startShift(interaction, cfg, { callsign, vehiclePrefix }) {
     const message = await shiftChannel.send({ embeds: [embed], components: buttons });
     await shiftRepo.updateEmbedMessage(shift.id, message.id);
 
-    return { shift, message };
+    return { shift, message, weaponCount: weaponSerials.length, memberCount: participants.length };
 }
 
 async function pauseShift(interaction, targetDiscordId = null) {
@@ -112,11 +162,25 @@ async function reportWeaponLoss(interaction, { serialNumber, observation }) {
     const dbUser = await userRepo.findByDiscordId(interaction.user.id);
     if (!dbUser) return { error: 'Usuário não encontrado.' };
 
-    const shift = await shiftRepo.findActiveByUser(dbUser.id, interaction.guildId);
-    if (!shift) return { error: 'Nenhum turno ativo encontrado.' };
+    // O turno é o da unidade em que o oficial participa (líder ou membro)
+    const shift = await shiftRepo.findActiveByParticipant(dbUser.id, interaction.guildId);
+    if (!shift) return { error: 'Você não está em nenhuma unidade ativa.' };
 
     if (!shift.weapon_serials.includes(serialNumber)) {
-        return { error: `A arma \`${serialNumber}\` não foi registrada no início deste turno.` };
+        return { error: `A arma \`${serialNumber}\` não está vinculada a este turno.` };
+    }
+
+    // Regras de permissão de extravio:
+    //  - Supervisor/Admin: qualquer arma
+    //  - Líder da unidade: qualquer arma vinculada ao turno da sua unidade
+    //  - Oficial comum: apenas armas que pertencem a ele
+    const owner = await officialWeaponRepo.findBySerial(interaction.guildId, serialNumber);
+    const isLeader = shift.user_id === dbUser.id;
+    const isOwner = owner && owner.user_id === dbUser.id;
+    const elevated = isAdmin(interaction.member) || await isSupervisor(interaction.member);
+
+    if (!isOwner && !isLeader && !elevated) {
+        return { error: 'Você só pode registrar extravio das suas próprias armas. Apenas o responsável da unidade ou um supervisor pode extraviar armas de outros oficiais.' };
     }
 
     const alreadyLost = await weaponLossRepo.existsInShift(shift.id, serialNumber);
@@ -124,9 +188,13 @@ async function reportWeaponLoss(interaction, { serialNumber, observation }) {
         return { error: `A arma \`${serialNumber}\` já foi registrada como extraviada neste turno.` };
     }
 
+    // O extravio é atribuído ao DONO da arma (quando conhecido), preservando
+    // a contabilização correta no arsenal individual.
+    const lossUserId = owner ? owner.user_id : dbUser.id;
+
     const loss = await weaponLossRepo.create({
         shiftId: shift.id,
-        userId: dbUser.id,
+        userId: lossUserId,
         serialNumber,
         observation,
     });
@@ -134,34 +202,42 @@ async function reportWeaponLoss(interaction, { serialNumber, observation }) {
     await weaponRepo.setLost(serialNumber, interaction.guildId);
 
     const updatedShift = await shiftRepo.findById(shift.id);
-    await refreshEmbed(interaction.guild, updatedShift, interaction.user);
+    const leaderUser = await resolveLeaderUser(interaction, shift);
+    await refreshEmbed(interaction.guild, updatedShift, leaderUser);
 
     const guildConfigRepo = require('../repositories/guildConfigRepository');
     const weaponChannelId = await guildConfigRepo.get(interaction.guildId, 'weapon_report_channel_id');
     const reportChannel = interaction.guild.channels.cache.get(weaponChannelId);
     if (reportChannel) {
-        const lossEmbed = buildWeaponLossEmbed(updatedShift, interaction.user, loss);
+        // Atribui o extravio ao dono da arma; registra quem reportou, se diferente
+        const ownerUser = owner ? await resolveUserForEmbed(interaction, owner.discord_id) : interaction.user;
+        const reportedBy = ownerUser.id !== interaction.user.id ? interaction.user : null;
+        const lossEmbed = buildWeaponLossEmbed(updatedShift, ownerUser, loss, reportedBy);
         await reportChannel.send({ embeds: [lossEmbed] });
     }
 
     return { loss };
 }
 
-async function endShift(interaction, targetDiscordId = null) {
+async function endShift(interaction, targetDiscordId = null, { reason = null, reasonNote = null } = {}) {
     const discordId = targetDiscordId || interaction.user.id;
     const dbUser = await userRepo.findByDiscordId(discordId);
     if (!dbUser) return { error: 'Usuário não encontrado.' };
 
-    const shift = await shiftRepo.findActiveByUser(dbUser.id, interaction.guildId);
+    // O líder é shift.user_id; usamos o turno da unidade do oficial alvo
+    const shift = await shiftRepo.findActiveByParticipant(dbUser.id, interaction.guildId);
     if (!shift) return { error: 'Nenhum turno ativo encontrado.' };
 
     if (shift.status === 'paused') {
         await pauseRepo.endActive(shift.id);
     }
 
+    const members = await shiftMemberRepo.findByShift(shift.id);
+
     const totalPauseMs = await pauseRepo.sumByShift(shift.id);
-    const ended = await shiftRepo.end(shift.id, totalPauseMs);
+    const ended = await shiftRepo.end(shift.id, totalPauseMs, reason, reasonNote);
     ended.weapon_losses = shift.weapon_losses;
+    ended.members = members;
 
     for (const serial of shift.weapon_serials) {
         const isLost = shift.weapon_losses.some(l => l.serial_number === serial);
@@ -177,7 +253,9 @@ async function endShift(interaction, targetDiscordId = null) {
         }
     }
 
-    const shiftUser = await resolveUserForEmbed(interaction, discordId);
+    // Para o embed/relatório usamos o LÍDER da unidade
+    const leaderDiscordId = members.find(m => m.role === 'LEADER')?.discord_id || discordId;
+    const shiftUser = await resolveUserForEmbed(interaction, leaderDiscordId);
     await refreshEmbed(interaction.guild, ended, shiftUser, true);
 
     const pauses = await pauseRepo.findByShift(shift.id);
@@ -189,7 +267,16 @@ async function endShift(interaction, targetDiscordId = null) {
         await reportChannel.send({ embeds: [reportEmbed] });
     }
 
-    return { shift: ended };
+    return { shift: ended, reason };
+}
+
+// Resolve o User do LÍDER da unidade para exibir como "Responsável" no embed,
+// independente de quem disparou a ação (membro, supervisor, etc.).
+async function resolveLeaderUser(interaction, shift) {
+    const members = shift.members || await shiftMemberRepo.findByShift(shift.id);
+    const leader = members.find(m => m.role === 'LEADER');
+    if (!leader) return interaction.user;
+    return resolveUserForEmbed(interaction, leader.discord_id);
 }
 
 // Busca o objeto User do Discord para usar nos embeds.
@@ -214,6 +301,7 @@ async function refreshEmbed(guild, shift, user, ended = false) {
         if (!shiftChannel) return;
 
         const message = await shiftChannel.messages.fetch(shift.embed_message_id);
+        if (!shift.members) shift.members = await shiftMemberRepo.findByShift(shift.id);
         const embed = buildShiftEmbed(shift, user, shift.voice_channel_id);
         const components = ended ? [] : buildShiftButtons(shift.status);
         await message.edit({ embeds: [embed], components });
@@ -226,8 +314,8 @@ async function addWeaponToShift(interaction, { weaponName, serialNumber }) {
     const dbUser = await userRepo.findByDiscordId(interaction.user.id);
     if (!dbUser) return { error: 'Usuário não encontrado.' };
 
-    const shift = await shiftRepo.findActiveByUser(dbUser.id, interaction.guildId);
-    if (!shift) return { error: 'Nenhum turno ativo encontrado.' };
+    const shift = await shiftRepo.findActiveByParticipant(dbUser.id, interaction.guildId);
+    if (!shift) return { error: 'Você não está em nenhuma unidade ativa.' };
 
     if (shift.weapon_serials.includes(serialNumber)) {
         return { error: `A arma \`${serialNumber}\` já está registrada neste turno.` };
@@ -242,7 +330,8 @@ async function addWeaponToShift(interaction, { weaponName, serialNumber }) {
     await shiftRepo.addWeaponSerial(shift.id, serialNumber);
 
     const updatedShift = await shiftRepo.findById(shift.id);
-    await refreshEmbed(interaction.guild, updatedShift, interaction.user);
+    const leaderUser = await resolveLeaderUser(interaction, shift);
+    await refreshEmbed(interaction.guild, updatedShift, leaderUser);
 
     const guildConfigRepo = require('../repositories/guildConfigRepository');
     const weaponChannelId = await guildConfigRepo.get(interaction.guildId, 'weapon_report_channel_id');

@@ -432,7 +432,9 @@ police-rp-bot/
 │   │   ├── 002_guild_config.sql
 │   │   ├── 003_add_guild_id.sql
 │   │   ├── 004_weapons_guild_unique.sql
-│   │   └── 005_official_weapons.sql
+│   │   ├── 005_official_weapons.sql
+│   │   ├── 006_bot_config.sql
+│   │   └── 007_shift_members.sql   # Unidade operacional + motivo de encerramento
 │   └── migrate.js
 │
 ├── scripts/
@@ -452,12 +454,23 @@ police-rp-bot/
 ### Comandos operacionais (todos os membros)
 
 #### `/iniciar`
-Abre um modal com 3 campos: **Distrito**, **Unidade** e **Callsign**.  
+Inicia um turno como **Unidade Operacional** (ex: `3-A-12`, `1-L-20`, `3-AIR-01`).
+
+1. Abre um modal com 3 campos: **Distrito**, **Unidade** e **Callsign**.
+2. Em seguida, exibe a **montagem da unidade**: quem executou o comando é o **responsável** (motorista/líder) e pode selecionar **oficiais adicionais** num menu de seleção (até 5). Botões: **Iniciar Turno** (com os adicionais escolhidos) ou **Apenas eu** (unidade individual).
+
 O bot gera automaticamente:
 - **Callsign completo:** `Distrito-Unidade-Callsign` → ex: `3-A-12`
 - **Prefixo da viatura:** `DistritoCallsign` → ex: `312`
 
-As armas do **arsenal pessoal** do oficial (excluindo extraviadas) são carregadas automaticamente — sem precisar digitar nenhum serial. Se o arsenal estiver vazio ou sem armas ativas, o oficial é orientado a usar o botão **Adicionar Arma** ou `/arma registrar`.
+Ao confirmar, o bot:
+- Cria **um único turno** para toda a unidade e registra os participantes em `shift_members` (`LEADER` / `MEMBER`).
+- Cria **um único canal de voz** para a unidade.
+- **Vincula automaticamente** ao turno as armas do **arsenal pessoal** de **todos os participantes** (excluindo extraviadas), mantendo cada arma associada ao seu dono real — sem digitar seriais.
+
+Se nenhum participante tiver armas ativas, a equipe é orientada a usar o botão **Adicionar Arma** ou `/arma registrar`.
+
+> A composição da unidade é **fixa durante o turno**. Não há remoção/adição dinâmica de membros: se a composição mudar (entrada/saída de oficial, troca de motorista, mudança de formação), o turno deve ser **encerrado** (motivo *Remodulação*) e um novo iniciado.
 
 #### `/arma registrar <nome> <serie>`
 Cadastra uma arma no arsenal pessoal do oficial, vinculada ao servidor.  
@@ -489,8 +502,18 @@ A embed de turno possui **dois grupos de botões**:
 |---|---|
 | **Pausar** | Registra pausa com timestamp; atualiza embed para amarelo |
 | **Retornar ao Serviço** | Encerra a pausa, acumula duração; atualiza embed para verde |
-| **Arma Perdida** | Abre modal (série + observação); valida pertencimento ao turno; envia relatório |
-| **Encerrar Turno** | Calcula tempos; envia relatório; exclui canal de voz; desativa botões |
+| **Arma Perdida** | Abre modal (série + observação); valida vínculo ao turno e permissão; envia relatório |
+| **Encerrar Turno** | Pede o **motivo** (Fim de Patrulha / Remodulação / Outro); calcula tempos; envia relatório; exclui canal de voz; desativa botões |
+
+**Motivo do encerramento**
+
+Ao clicar em **Encerrar Turno**, é exibida uma seleção de motivo:
+
+- **Fim de Patrulha**
+- **Remodulação** — após gerar o relatório e encerrar o canal de voz, o bot pergunta se deseja **iniciar uma nova unidade** e abre imediatamente o fluxo de criação de turno, permitindo informar a nova composição.
+- **Outro** — abre um campo para digitar um motivo personalizado (opcional).
+
+O motivo é salvo no banco (`shifts.end_reason` / `end_reason_note`) e exibido no relatório de encerramento.
 
 **Grupo 2 — Gestão de armamento**
 
@@ -531,6 +554,8 @@ Visão completa do arsenal do oficial, **incluindo armas extraviadas**, com:
 - Quantidade de extravios registrados
 
 > Os três subcomandos de `/historico` são **restritos a supervisores e administradores**. Oficiais sem cargo supervisor recebem mensagem de permissão negada.
+>
+> As estatísticas contabilizam **todas as participações** do oficial em unidades — tanto como **responsável** quanto como **membro adicional** — e não apenas os turnos em que ele foi o líder.
 
 ---
 
@@ -554,8 +579,8 @@ Visão completa do arsenal do oficial, **incluindo armas extraviadas**, com:
 | Iniciar turno | ✅ | ✅ | ✅ |
 | Pausar / Retornar (próprio turno) | ✅ | ✅ | ✅ |
 | Pausar / Retornar (turno alheio) | ❌ | ✅ | ✅ |
-| Arma Perdida (próprio turno) | ✅ | ✅ | ✅ |
-| Arma Perdida (turno alheio) | ❌ | ✅ | ✅ |
+| Arma Perdida — própria arma da unidade | ✅ | ✅ | ✅ |
+| Arma Perdida — arma de outro membro da unidade | ❌ (só o responsável) | ✅ | ✅ |
 | Encerrar turno próprio | ✅ | ✅ | ✅ |
 | Encerrar turno alheio | ❌ | ✅ | ✅ |
 | `/arma registrar` | ✅ | ✅ | ✅ |

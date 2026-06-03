@@ -18,7 +18,16 @@ function loadModals() {
 }
 
 async function handleModal(interaction) {
-    const handler = modals.get(interaction.customId);
+    // Casa pelo customId exato; senão, por matcher de prefixo (customId dinâmico)
+    let handler = modals.get(interaction.customId);
+    if (!handler) {
+        for (const h of modals.values()) {
+            if (typeof h.matches === 'function' && h.matches(interaction.customId)) {
+                handler = h;
+                break;
+            }
+        }
+    }
 
     if (!handler) {
         logger.warn(`Nenhum handler para modal: ${interaction.customId}`);

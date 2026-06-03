@@ -56,7 +56,8 @@ async function getArsenalHistory(userId, guildId) {
             MAX(s.started_at) AS last_used_at
          FROM official_weapons ow
          LEFT JOIN weapons w ON w.serial_number = ow.serial_number AND w.guild_id = ow.guild_id
-         LEFT JOIN shifts s ON ow.serial_number = ANY(s.weapon_serials) AND s.guild_id = ow.guild_id AND s.user_id = ow.user_id
+         LEFT JOIN shift_members sm ON sm.user_id = ow.user_id
+         LEFT JOIN shifts s ON s.id = sm.shift_id AND ow.serial_number = ANY(s.weapon_serials) AND s.guild_id = ow.guild_id
          LEFT JOIN weapon_losses wl ON wl.serial_number = ow.serial_number AND wl.user_id = ow.user_id
          WHERE ow.user_id = $1 AND ow.guild_id = $2
          GROUP BY ow.weapon_name, ow.serial_number, ow.created_at, w.status

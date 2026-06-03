@@ -1,4 +1,4 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const shiftService = require('../services/shiftService');
 const userRepo = require('../repositories/userRepository');
 const shiftRepo = require('../repositories/shiftRepository');
@@ -93,10 +93,27 @@ module.exports = {
 
             const { ownerDiscordId } = resolved;
 
+            // Encerramento agora pede o MOTIVO antes de concluir
+            if (action === 'end') {
+                const reasonSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`shiftend:reason:${ownerDiscordId}`)
+                    .setPlaceholder('Selecione o motivo do encerramento')
+                    .addOptions(
+                        { label: 'Fim de Patrulha', value: 'patrol_end', emoji: '🏁' },
+                        { label: 'Remodulação', value: 'remodulation', emoji: '🔄', description: 'Encerra e permite iniciar uma nova unidade' },
+                        { label: 'Outro', value: 'other', emoji: '📝', description: 'Informar um motivo personalizado' },
+                    );
+
+                return interaction.followUp({
+                    content: '📕 **Encerramento de Turno** — qual o motivo?',
+                    components: [new ActionRowBuilder().addComponents(reasonSelect)],
+                    ephemeral: true,
+                });
+            }
+
             const actionMap = {
                 pause:  { fn: () => shiftService.pauseShift(interaction, ownerDiscordId),  msg: '⏸️ Turno pausado.' },
                 resume: { fn: () => shiftService.resumeShift(interaction, ownerDiscordId), msg: '▶️ Retornando ao serviço.' },
-                end:    { fn: () => shiftService.endShift(interaction, ownerDiscordId),    msg: '🔴 Turno encerrado. Bom descanso!' },
             };
 
             const op = actionMap[action];

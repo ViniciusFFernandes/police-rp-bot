@@ -199,11 +199,11 @@ module.exports = {
                 }
             }
 
-            // Verifica se há turno ativo — se sim, usa o fluxo normal de turno
-            const activeShift = dbUser ? await shiftRepo.findActiveByUser(dbUser.id, guildId) : null;
+            // Verifica se o oficial está em uma unidade ativa — se sim, usa o fluxo de turno
+            const activeShift = dbUser ? await shiftRepo.findActiveByParticipant(dbUser.id, guildId) : null;
             if (activeShift) {
                 return interaction.editReply({
-                    content: `⚠️ Você possui um turno ativo. Use o botão **Arma Perdida** na embed do turno para registrar extravios durante o serviço.`,
+                    content: `⚠️ Você está em uma unidade ativa. Use o botão **Arma Perdida** na embed do turno para registrar extravios durante o serviço.`,
                 });
             }
 

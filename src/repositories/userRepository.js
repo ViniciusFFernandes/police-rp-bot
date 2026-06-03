@@ -20,24 +20,30 @@ async function findByDiscordId(discordId) {
     return rows[0] || null;
 }
 
+// Estatísticas considerando TODAS as participações do oficial na unidade
+// (líder ou membro), não apenas turnos em que foi o líder.
 async function getStats(discordId, guildId) {
     const { rows } = await db.query(
-        `SELECT
-            u.discord_id,
-            u.display_name,
-            COUNT(DISTINCT s.id) FILTER (WHERE s.status = 'ended') AS total_shifts,
+        `WITH participated AS (
+            SELECT s.id, s.started_at, s.ended_at, s.total_pause_ms, s.status
+            FROM shifts s
+            JOIN shift_members sm ON sm.shift_id = s.id
+            JOIN users u ON u.id = sm.user_id
+            WHERE u.discord_id = $1 AND s.guild_id = $2
+         )
+         SELECT
+            $1::text AS discord_id,
+            (SELECT display_name FROM users WHERE discord_id = $1) AS display_name,
+            COUNT(*) FILTER (WHERE status = 'ended') AS total_shifts,
             COALESCE(SUM(
-                EXTRACT(EPOCH FROM (s.ended_at - s.started_at)) * 1000 - s.total_pause_ms
-            ) FILTER (WHERE s.status = 'ended'), 0) AS effective_ms,
-            COALESCE(SUM(s.total_pause_ms) FILTER (WHERE s.status = 'ended'), 0) AS total_pause_ms,
-            COUNT(DISTINCT p.id) AS total_pauses,
-            COUNT(DISTINCT wl.id) AS total_losses
-         FROM users u
-         LEFT JOIN shifts s ON s.user_id = u.id AND s.guild_id = $2
-         LEFT JOIN pauses p ON p.shift_id = s.id
-         LEFT JOIN weapon_losses wl ON wl.user_id = u.id AND wl.shift_id = s.id
-         WHERE u.discord_id = $1
-         GROUP BY u.discord_id, u.display_name`,
+                EXTRACT(EPOCH FROM (ended_at - started_at)) * 1000 - total_pause_ms
+            ) FILTER (WHERE status = 'ended'), 0) AS effective_ms,
+            COALESCE(SUM(total_pause_ms) FILTER (WHERE status = 'ended'), 0) AS total_pause_ms,
+            (SELECT COUNT(*) FROM pauses p WHERE p.shift_id IN (SELECT id FROM participated)) AS total_pauses,
+            (SELECT COUNT(*) FROM weapon_losses wl
+                JOIN users uu ON uu.id = wl.user_id
+                WHERE uu.discord_id = $1 AND wl.shift_id IN (SELECT id FROM participated)) AS total_losses
+         FROM participated`,
         [discordId, guildId]
     );
     return rows[0] || null;

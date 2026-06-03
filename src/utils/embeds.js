@@ -10,6 +10,28 @@ const COLOR = {
     INFO: 0x2980B9,
 };
 
+const END_REASON_LABEL = {
+    patrol_end: 'Fim de Patrulha',
+    remodulation: 'Remodulação',
+    other: 'Outro',
+};
+
+// Texto amigável do motivo de encerramento, incluindo a nota livre quando houver
+function endReasonLabel(reason, note) {
+    if (!reason) return null;
+    const base = END_REASON_LABEL[reason] || reason;
+    if (reason === 'other' && note) return `${base} — ${note}`;
+    return base;
+}
+
+// Lista de participantes da unidade formatada para embeds
+function formatTeam(members) {
+    if (!members || members.length === 0) return null;
+    return members
+        .map(m => `${m.role === 'LEADER' ? '⭐ **Responsável**' : '▫️ Oficial'}: <@${m.discord_id}>`)
+        .join('\n');
+}
+
 function buildShiftEmbed(shift, user, voiceChannel) {
     const statusLabel = {
         active: '🟢 Em Serviço',
@@ -34,13 +56,21 @@ function buildShiftEmbed(shift, user, voiceChannel) {
         .setTitle('🚔 Registro de Turno')
         .setThumbnail(user.displayAvatarURL())
         .addFields(
-            { name: '👮 Oficial', value: `<@${user.id}>`, inline: true },
+            { name: '👮 Responsável', value: `<@${user.id}>`, inline: true },
             { name: '📟 Callsign', value: shift.callsign, inline: true },
             { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
-            { name: '🔫 Armamentos', value: weaponList, inline: false },
-            { name: '🕐 Início', value: formatTimestamp(shift.started_at), inline: true },
-            { name: '📊 Status', value: statusLabel[shift.status] || shift.status, inline: true },
-        )
+        );
+
+    const team = formatTeam(shift.members);
+    if (team) {
+        embed.addFields({ name: '👥 Equipe da Unidade', value: team, inline: false });
+    }
+
+    embed.addFields(
+        { name: '🔫 Armamentos', value: weaponList, inline: false },
+        { name: '🕐 Início', value: formatTimestamp(shift.started_at), inline: true },
+        { name: '📊 Status', value: statusLabel[shift.status] || shift.status, inline: true },
+    )
         .setFooter({ text: `ID do Turno: ${shift.id}` })
         .setTimestamp();
 
@@ -118,28 +148,46 @@ function buildReportEmbed(shift, user, pauses) {
     const losses = shift.weapon_losses || [];
     const effective = (new Date(shift.ended_at) - new Date(shift.started_at)) - (shift.total_pause_ms || 0);
 
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setColor(COLOR.REPORT)
         .setTitle('📋 Relatório de Turno Encerrado')
         .addFields(
-            { name: '👮 Oficial', value: `<@${user.id}> (${user.tag})`, inline: false },
-            { name: '📟 Callsign', value: shift.callsign, inline: true },
-            { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
-            { name: '🕐 Início', value: formatTimestamp(shift.started_at), inline: true },
-            { name: '🏁 Encerramento', value: formatTimestamp(shift.ended_at), inline: true },
-            { name: '⏱️ Tempo Total', value: formatDuration(new Date(shift.ended_at) - new Date(shift.started_at)), inline: true },
-            { name: '☕ Tempo em Pausa', value: formatDuration(shift.total_pause_ms || 0), inline: true },
-            { name: '✅ Tempo Efetivo', value: formatDuration(effective), inline: true },
-            { name: '⏸️ Pausas', value: String(pauses.length), inline: true },
-            { name: '🔫 Armas', value: shift.weapon_serials.join(', ') || 'Nenhuma', inline: false },
-            { name: '⚠️ Extravios', value: losses.length > 0 ? losses.map(l => `\`${l.serial_number}\``).join(', ') : 'Nenhum', inline: false },
-        )
+            { name: '👮 Responsável', value: `<@${user.id}> (${user.tag})`, inline: false },
+        );
+
+    const team = formatTeam(shift.members);
+    if (team) {
+        embed.addFields({ name: '👥 Equipe da Unidade', value: team, inline: false });
+    }
+
+    embed.addFields(
+        { name: '📟 Callsign', value: shift.callsign, inline: true },
+        { name: '🚗 Viatura', value: shift.vehicle_prefix, inline: true },
+        { name: '🕐 Início', value: formatTimestamp(shift.started_at), inline: true },
+        { name: '🏁 Encerramento', value: formatTimestamp(shift.ended_at), inline: true },
+        { name: '⏱️ Tempo Total', value: formatDuration(new Date(shift.ended_at) - new Date(shift.started_at)), inline: true },
+        { name: '☕ Tempo em Pausa', value: formatDuration(shift.total_pause_ms || 0), inline: true },
+        { name: '✅ Tempo Efetivo', value: formatDuration(effective), inline: true },
+        { name: '⏸️ Pausas', value: String(pauses.length), inline: true },
+    );
+
+    const reason = endReasonLabel(shift.end_reason, shift.end_reason_note);
+    if (reason) {
+        embed.addFields({ name: '📕 Motivo do Encerramento', value: reason, inline: true });
+    }
+
+    embed.addFields(
+        { name: '🔫 Armas', value: shift.weapon_serials.join(', ') || 'Nenhuma', inline: false },
+        { name: '⚠️ Extravios', value: losses.length > 0 ? losses.map(l => `\`${l.serial_number}\``).join(', ') : 'Nenhum', inline: false },
+    )
         .setFooter({ text: `ID: ${shift.id}` })
         .setTimestamp();
+
+    return embed;
 }
 
-function buildWeaponLossEmbed(shift, user, loss) {
-    return new EmbedBuilder()
+function buildWeaponLossEmbed(shift, user, loss, reportedByUser = null) {
+    const embed = new EmbedBuilder()
         .setColor(COLOR.LOSS)
         .setTitle('🚨 Extravio de Armamento')
         .addFields(
@@ -149,7 +197,13 @@ function buildWeaponLossEmbed(shift, user, loss) {
             { name: '🔫 Nº de Série', value: `\`${loss.serial_number}\``, inline: true },
             { name: '🕐 Horário', value: formatTimestamp(loss.reported_at), inline: true },
             { name: '📝 Observação', value: loss.observation || 'Sem observação', inline: false },
-        )
+        );
+
+    if (reportedByUser && reportedByUser.id !== user.id) {
+        embed.addFields({ name: '✍️ Registrado por', value: `<@${reportedByUser.id}>`, inline: true });
+    }
+
+    return embed
         .setFooter({ text: `Turno: ${shift.id}` })
         .setTimestamp();
 }
@@ -176,5 +230,7 @@ module.exports = {
     buildReportEmbed,
     buildWeaponLossEmbed,
     buildWeaponAddedEmbed,
+    endReasonLabel,
+    formatTeam,
     COLOR,
 };
