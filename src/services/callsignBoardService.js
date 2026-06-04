@@ -30,7 +30,7 @@ function buildBoardEmbed(guild, profiles) {
         const header  = `${'DISTINT'.padEnd(BADGE_W)}${'CSN'.padEnd(CSN_W)}OFICIAL`;
         const SEP     = '-'.repeat(header.length);
         const lines   = members.map(p => {
-            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(BADGE_W) : '———'.padEnd(BADGE_W);
+            const badge    = p.badge_num ? `#${p.badge_num.padStart(4, '0')}`.padEnd(BADGE_W) : '———'.padEnd(BADGE_W);
             const callsign = p.callsign_num.padEnd(CSN_W);
             const raw      = p.display_name || '—';
             const name     = raw.includes(' | ') ? raw.split(' | ').slice(1).join(' | ') : raw;

@@ -161,7 +161,7 @@ module.exports = {
                 .addFields(
                     { name: '📍 Distrito',    value: profile.district,         inline: true },
                     { name: '📟 Callsign',    value: profile.callsign_num,     inline: true },
-                    { name: '🪪 Distintivo',  value: profile.badge_num || '—', inline: true },
+                    { name: '🪪 Distintivo',  value: profile.badge_num ? profile.badge_num.padStart(4, '0') : '—', inline: true },
                     { name: '👤 Nome',        value: profile.display_name || '—', inline: true },
                     { name: '🕐 Atualizado',  value: formatTimestamp(profile.updated_at), inline: true },
                 )

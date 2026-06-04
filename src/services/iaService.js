@@ -47,7 +47,7 @@ function buildBoardEmbed(inv) {
 
     // Acusado
     const callsignInfo = inv.involved_callsign ? `\`${inv.involved_callsign}\`` : '—';
-    const badgeInfo    = inv.involved_badge    ? `\`${inv.involved_badge}\``    : '—';
+    const badgeInfo    = inv.involved_badge    ? `\`${inv.involved_badge.padStart(4, '0')}\`` : '—';
     const distInfo     = inv.involved_district ? `Distrito ${inv.involved_district}` : '—';
     embed.addFields(
         { name: '🚨 Acusado/Envolvido', value: `<@${inv.involved_discord_id}>`, inline: true },
