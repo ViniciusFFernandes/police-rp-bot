@@ -31,17 +31,18 @@ function buildBoardEmbed(guild, profiles) {
             24
         );
 
+        const SEP    = '─'.repeat(42);
         const header = `${'DISTINT'.padEnd(12)}${'CSN'.padEnd(8)}OFICIAL`;
         const lines  = members.map(p => {
             const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(12) : '———'.padEnd(12);
             const callsign = p.callsign_num.padEnd(8);
-            const name     = (p.display_name || '—').slice(0, maxName);
+            const name     = (p.display_name || '—').slice(0, 22);
             return `${badge}${callsign}${name}`;
         });
 
         embed.addFields({
             name: `🗺️ Distrito ${district}`,
-            value: `\`\`\`\n${header}\n${lines.join('\n')}\n\`\`\``,
+            value: `\`\`\`\n${SEP}\n${header}\n${SEP}\n${lines.join('\n')}\n${SEP}\n\`\`\``,
             inline: false,
         });
     }
