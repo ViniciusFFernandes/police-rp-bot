@@ -25,15 +25,23 @@ function buildBoardEmbed(guild, profiles) {
     }
 
     for (const [district, members] of byDistrict) {
-        const lines = members.map(p => {
-            const badge    = p.badge_num    ? `#${p.badge_num.padStart(4, '0')}` : '——————';
-            const callsign = p.callsign_num.padStart(3, '0');
-            return `\`${badge}\` \`${callsign}\`  <@${p.discord_id}>`;
-        }).join('\n');
+        // Calcula largura máxima do nome para alinhar colunas
+        const maxName = Math.min(
+            Math.max(...members.map(p => (p.display_name || '').length), 6),
+            24
+        );
+
+        const header = `${'DISTINT'.padEnd(8)}${'CSN'.padEnd(6)}OFICIAL`;
+        const lines  = members.map(p => {
+            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(8) : '———'.padEnd(8);
+            const callsign = p.callsign_num.padEnd(6);
+            const name     = (p.display_name || '—').slice(0, maxName);
+            return `${badge}${callsign}${name}`;
+        });
 
         embed.addFields({
             name: `🗺️ Distrito ${district}`,
-            value: `\`${'DISTINT'.padEnd(7)}\` \`CSN\`  Oficial\n${lines}`,
+            value: `\`\`\`\n${header}\n${lines.join('\n')}\n\`\`\``,
             inline: false,
         });
     }
