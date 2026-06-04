@@ -25,24 +25,20 @@ function buildBoardEmbed(guild, profiles) {
     }
 
     for (const [district, members] of byDistrict) {
-        // Calcula largura máxima do nome para alinhar colunas
-        const maxName = Math.min(
-            Math.max(...members.map(p => (p.display_name || '').length), 6),
-            24
-        );
-
-        const SEP    = '─'.repeat(42);
-        const header = `${'DISTINT'.padEnd(12)}${'CSN'.padEnd(8)}OFICIAL`;
+        const SEP    = '-'.repeat(38);
+        const header = `${'DISTINT'.padEnd(10)}${'CSN'.padEnd(6)}OFICIAL`;
         const lines  = members.map(p => {
-            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(12) : '———'.padEnd(12);
-            const callsign = p.callsign_num.padEnd(8);
-            const name     = (p.display_name || '—').slice(0, 22);
-            return `${badge}${callsign}${name}`;
+            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(10) : '———'.padEnd(10);
+            const callsign = p.callsign_num.padEnd(6);
+            // Se o display_name tiver o formato "badge-csn | Nome", extrai só o nome
+            const raw  = p.display_name || '—';
+            const name = raw.includes(' | ') ? raw.split(' | ').slice(1).join(' | ') : raw;
+            return `${badge}${callsign}${name.slice(0, 20)}`;
         });
 
         embed.addFields({
             name: `🗺️ Distrito ${district}`,
-            value: `\`\`\`\n${SEP}\n${header}\n${SEP}\n${lines.join('\n')}\n${SEP}\n\`\`\``,
+            value: `\`\`\`\n${header}\n${SEP}\n${lines.join('\n')}\n\`\`\``,
             inline: false,
         });
     }
