@@ -9,11 +9,11 @@ module.exports = {
     customId: 'ia_description',
 
     async execute(interaction) {
-        await interaction.deferUpdate();
+        await interaction.deferReply({ ephemeral: true });
 
         const pending = pendingIA.get(interaction.guildId, interaction.user.id);
         if (!pending?.origin || !pending?.involvedDiscordId) {
-            return interaction.followUp({ content: '❌ Sessão expirada. Inicie novamente com `/ia abrir`.', ephemeral: true });
+            return interaction.editReply({ content: '❌ Sessão expirada. Inicie novamente com `/ia abrir`.' });
         }
 
         const description = interaction.fields.getTextInputValue('description').trim();
@@ -48,15 +48,15 @@ module.exports = {
 
         pendingIA.clear(interaction.guildId, interaction.user.id);
 
-        // Publica o quadro no canal de AI configurado
-        await iaService.postBoard(interaction.guild, inv);
+        // Publica o quadro no canal de IA configurado
+        const board = await iaService.postBoard(interaction.guild, inv);
+
+        const boardNote = board
+            ? 'O quadro foi publicado no canal de Assuntos Internos.'
+            : '⚠️ Investigação criada, mas o quadro não pôde ser publicado — verifique as permissões do bot no canal de IA ou use `/configurar canal-ia`.';
 
         await interaction.editReply({
-            content:
-                `✅ **Investigação ${caseNumber} aberta com sucesso!**\n` +
-                `O quadro foi publicado no canal de Assuntos Internos.`,
-            embeds: [],
-            components: [],
+            content: `✅ **Investigação ${caseNumber} aberta com sucesso!**\n${boardNote}`,
         });
     },
 };

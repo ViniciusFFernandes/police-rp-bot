@@ -159,12 +159,15 @@ async function postBoard(guild, inv) {
     const channel = await guild.channels.fetch(channelId).catch(() => null);
     if (!channel) return null;
 
-    const embed = buildBoardEmbed(inv);
-    const components = buildBoardButtons(inv);
-
-    const msg = await channel.send({ embeds: [embed], components });
-    await iaRepo.updateBoard(inv.id, msg.id, channel.id);
-    return msg;
+    try {
+        const embed = buildBoardEmbed(inv);
+        const components = buildBoardButtons(inv);
+        const msg = await channel.send({ embeds: [embed], components });
+        await iaRepo.updateBoard(inv.id, msg.id, channel.id);
+        return msg;
+    } catch {
+        return null; // sem permissão — investigação já foi criada no banco
+    }
 }
 
 async function refreshBoard(guild, inv) {
@@ -181,9 +184,13 @@ async function refreshBoard(guild, inv) {
         return;
     }
 
-    const embed = buildBoardEmbed(inv);
-    const components = buildBoardButtons(inv);
-    await msg.edit({ embeds: [embed], components });
+    try {
+        const embed = buildBoardEmbed(inv);
+        const components = buildBoardButtons(inv);
+        await msg.edit({ embeds: [embed], components });
+    } catch {
+        // sem permissão para editar — silencioso
+    }
 }
 
 module.exports = { buildBoardEmbed, buildBoardButtons, postBoard, refreshBoard, ORIGIN_LABEL, VERDICT_LABEL };
