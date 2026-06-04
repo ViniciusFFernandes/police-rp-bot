@@ -84,6 +84,18 @@ async function findByEmbedMessage(messageId, guildId) {
     return row;
 }
 
+async function findAllActiveByGuild(guildId) {
+    const { rows } = await db.query(
+        `SELECT s.*, u.discord_id AS user_discord_id, u.display_name AS user_display_name
+         FROM shifts s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.guild_id = $1 AND s.status IN ('active', 'paused')
+         ORDER BY s.started_at ASC`,
+        [guildId]
+    );
+    return rows;
+}
+
 async function updateEmbedMessage(id, messageId) {
     await db.query('UPDATE shifts SET embed_message_id = $1 WHERE id = $2', [messageId, id]);
 }
@@ -150,6 +162,7 @@ module.exports = {
     findById,
     findActiveByUser,
     findActiveByParticipant,
+    findAllActiveByGuild,
     findByEmbedMessage,
     findEndedByUser,
     countEndedByUser,
