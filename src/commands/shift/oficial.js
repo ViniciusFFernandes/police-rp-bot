@@ -32,6 +32,12 @@ module.exports = {
                         .setRequired(false)
                         .setMaxLength(20)
                 )
+                .addStringOption(opt =>
+                    opt.setName('nome')
+                        .setDescription('Nome do oficial — define o apelido como {distintivo}-{callsign} | Nome')
+                        .setRequired(false)
+                        .setMaxLength(50)
+                )
                 .addUserOption(opt =>
                     opt.setName('usuario')
                         .setDescription('Oficial a definir (somente supervisores/admins) — padrão: você mesmo')
@@ -59,6 +65,7 @@ module.exports = {
             const district    = interaction.options.getString('distrito').trim().toUpperCase();
             const callsignNum = interaction.options.getString('callsign').trim();
             const badgeNum    = interaction.options.getString('distintivo')?.trim() ?? null;
+            const nome        = interaction.options.getString('nome')?.trim() ?? null;
             const targetUser  = interaction.options.getUser('usuario') ?? null;
 
             const isSelf = !targetUser || targetUser.id === interaction.user.id;
@@ -73,10 +80,26 @@ module.exports = {
             const subject = isSelf ? interaction.member : await interaction.guild.members.fetch(targetUser.id).catch(() => null);
             const subjectUser = isSelf ? interaction.user : (subject?.user ?? targetUser);
 
+            // Se nome foi informado, define o apelido e usa o nome como display_name no banco
+            let displayName = subject?.displayName ?? subjectUser.username;
+            if (nome) {
+                // Badge efetivo: o novo (se alterado agora) ou o já salvo no perfil
+                const existingProfile = await officialProfileRepo.findByDiscordId(subjectUser.id, guildId);
+                const effectiveBadge  = badgeNum ?? existingProfile?.badge_num ?? null;
+                const nickname        = effectiveBadge
+                    ? `${effectiveBadge}-${callsignNum} | ${nome}`
+                    : `${callsignNum} | ${nome}`;
+
+                if (subject) {
+                    await subject.setNickname(nickname).catch(() => {}); // silencioso se sem permissão
+                }
+                displayName = nome;
+            }
+
             const dbUser = await userRepo.upsert(
                 subjectUser.id,
                 subjectUser.username,
-                subject?.displayName ?? subjectUser.username,
+                displayName,
             );
 
             await officialProfileRepo.upsert(dbUser.id, guildId, district, callsignNum, badgeNum);
@@ -95,7 +118,8 @@ module.exports = {
                     content:
                         `✅ **Perfil atualizado!**\n` +
                         `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**` +
-                        (badgeNum ? ` · 🪪 Distintivo: **${badgeNum}**` : '') + '\n\n' +
+                        (badgeNum ? ` · 🪪 Distintivo: **${badgeNum}**` : '') +
+                        (nome ? ` · 👤 Nome: **${nome}**` : '') + '\n\n' +
                         `Seu callsign será montado como: ${preview}\n` +
                         `Use \`/iniciar\` para abrir uma unidade.`,
                 });
@@ -105,7 +129,8 @@ module.exports = {
                 content:
                     `✅ Perfil de <@${subjectUser.id}> atualizado.\n` +
                     `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**` +
-                    (badgeNum ? ` · 🪪 Distintivo: **${badgeNum}**` : ''),
+                    (badgeNum ? ` · 🪪 Distintivo: **${badgeNum}**` : '') +
+                    (nome ? ` · 👤 Nome: **${nome}**` : ''),
             });
         }
 
@@ -137,6 +162,7 @@ module.exports = {
                     { name: '📍 Distrito',    value: profile.district,         inline: true },
                     { name: '📟 Callsign',    value: profile.callsign_num,     inline: true },
                     { name: '🪪 Distintivo',  value: profile.badge_num || '—', inline: true },
+                    { name: '👤 Nome',        value: profile.display_name || '—', inline: true },
                     { name: '🕐 Atualizado',  value: formatTimestamp(profile.updated_at), inline: true },
                 )
                 .setFooter({ text: interaction.guild.name })
