@@ -958,11 +958,9 @@ pm2 logs police-bot --err
 
 ### v1.1 — Painel Operacional
 - `/status` — visão geral dos turnos ativos no servidor em tempo real
-- Sistema de escalas de plantão
 
 ### v1.2 — Relatórios Avançados
 - Dashboard semanal/mensal automático
-- Exportação de relatórios em CSV
 
 ### v1.3 — Ocorrências
 - Sistema de registro de ocorrências vinculado ao turno ativo
