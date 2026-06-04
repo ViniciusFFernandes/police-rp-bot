@@ -973,6 +973,3 @@ pm2 logs police-bot --err
 - Busca de investigação por número de caso ou oficial
 - Histórico de alterações de status com auditoria
 
-### v2.0 — Dashboard Web
-- Painel web para visualização de estatísticas por servidor
-- Autenticação via Discord OAuth2
