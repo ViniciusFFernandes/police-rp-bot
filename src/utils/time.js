@@ -10,6 +10,16 @@ function formatDuration(ms) {
     return `${seconds}s`;
 }
 
+// Formata apenas a data como DD/MM/AAAA (para campos DATE do banco)
+function formatDateOnly(date) {
+    if (!date) return '—';
+    const d = new Date(date);
+    const day   = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year  = d.getUTCFullYear();
+    return `${day}/${month}/${year}`;
+}
+
 function formatTimestamp(date) {
     return `<t:${Math.floor(new Date(date).getTime() / 1000)}:f>`;
 }
@@ -22,4 +32,4 @@ function nowBrazil() {
     return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
 
-module.exports = { formatDuration, formatTimestamp, formatRelative, nowBrazil };
+module.exports = { formatDuration, formatTimestamp, formatRelative, formatDateOnly, nowBrazil };

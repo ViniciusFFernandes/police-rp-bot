@@ -7,7 +7,7 @@ const {
     UserSelectMenuBuilder,
     EmbedBuilder,
 } = require('discord.js');
-const { isAdmin, isSupervisor } = require('../../utils/permissions');
+const { isIAStaff } = require('../../utils/permissions');
 const pendingIA = require('../../utils/pendingIA');
 const { COLOR } = require('../../utils/embeds');
 
@@ -31,9 +31,9 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+        if (!await isIAStaff(interaction.member)) {
             return interaction.reply({
-                content: '❌ Apenas **Administradores** e **Supervisores** podem gerenciar investigações internas.',
+                content: '❌ Apenas **Administradores**, **Supervisores** e membros de **Assuntos Internos** podem gerenciar investigações.',
                 ephemeral: true,
             });
         }

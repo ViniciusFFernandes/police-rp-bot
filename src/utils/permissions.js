@@ -19,6 +19,14 @@ async function isConfigManager(member) {
     return roles.some(roleId => member.roles.cache.has(roleId));
 }
 
+// Pode usar comandos e interagir com quadros de Assuntos Internos
+async function isIAStaff(member) {
+    if (isAdmin(member)) return true;
+    if (await isSupervisor(member)) return true;
+    const roles = await guildConfigRepo.getIARoles(member.guild.id);
+    return roles.some(roleId => member.roles.cache.has(roleId));
+}
+
 async function canManageShift(interaction, shiftOwnerId) {
     const member = interaction.member;
     if (member.id === shiftOwnerId) return true;
@@ -27,4 +35,4 @@ async function canManageShift(interaction, shiftOwnerId) {
     return false;
 }
 
-module.exports = { isSupervisor, isAdmin, isConfigManager, canManageShift };
+module.exports = { isSupervisor, isAdmin, isConfigManager, isIAStaff, canManageShift };

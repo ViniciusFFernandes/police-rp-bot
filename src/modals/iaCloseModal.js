@@ -1,8 +1,13 @@
-// Modal handler: ia_close:<id> — finalizes an investigation with verdict
+// Modal handler: ia_close:<invId>:<verdict> — penalidade + encerra investigação
 const iaRepo    = require('../repositories/iaRepository');
 const iaService = require('../services/iaService');
 
-const VALID_VERDICTS = ['sustained', 'not_sustained', 'exonerated', 'unfounded'];
+const VERDICT_LABEL = {
+    sustained:     'Sustentado',
+    not_sustained: 'Não Sustentado',
+    exonerated:    'Exonerado',
+    unfounded:     'Infundado',
+};
 
 module.exports = {
     customId: 'ia_close',
@@ -11,17 +16,11 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const invId  = interaction.customId.split(':')[1];
-        const verdict = interaction.fields.getTextInputValue('verdict').trim().toLowerCase();
-        const penaltyRecommendation = interaction.fields.getTextInputValue('penalty_recommendation').trim() || null;
+        const parts   = interaction.customId.split(':');
+        const invId   = parts[1];
+        const verdict = parts[2];
 
-        if (!VALID_VERDICTS.includes(verdict)) {
-            return interaction.editReply({
-                content:
-                    '❌ Veredicto inválido. Use exatamente um dos valores:\n' +
-                    '`sustained` | `not_sustained` | `exonerated` | `unfounded`',
-            });
-        }
+        const penaltyRecommendation = interaction.fields.getTextInputValue('penalty_recommendation').trim() || null;
 
         const inv = await iaRepo.findById(invId, interaction.guildId);
         if (!inv) return interaction.editReply({ content: '❌ Investigação não encontrada.' });
@@ -30,17 +29,10 @@ module.exports = {
         const updated = await iaRepo.findById(invId, interaction.guildId);
         await iaService.refreshBoard(interaction.guild, updated);
 
-        const VERDICT_LABEL = {
-            sustained:     'Sustentado',
-            not_sustained: 'Não Sustentado',
-            exonerated:    'Exonerado',
-            unfounded:     'Infundado',
-        };
-
         await interaction.editReply({
             content:
                 `✅ Investigação **${inv.case_number}** encerrada.\n` +
-                `⚖️ Veredicto: **${VERDICT_LABEL[verdict]}**\n` +
+                `⚖️ Veredicto: **${VERDICT_LABEL[verdict] || verdict}**\n` +
                 (penaltyRecommendation ? `📋 Penalidade: ${penaltyRecommendation}` : ''),
         });
     },

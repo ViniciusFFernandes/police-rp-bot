@@ -10,6 +10,7 @@ const VALID_KEYS = [
     'callsign_channel_id',
     'callsign_message_id',   // interno — ID da mensagem persistente do quadro
     'ia_channel_id',
+    'ia_role_ids',
 ];
 
 async function get(guildId, key) {
@@ -76,9 +77,20 @@ async function setConfigManagerRoles(guildId, roleIds) {
     await set(guildId, 'config_manager_role_ids', JSON.stringify(roleIds));
 }
 
+async function getIARoles(guildId) {
+    const raw = await get(guildId, 'ia_role_ids');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+async function setIARoles(guildId, roleIds) {
+    await set(guildId, 'ia_role_ids', JSON.stringify(roleIds));
+}
+
 module.exports = {
     get, set, getAll, isConfigured,
     getSupervisorRoles, setSupervisorRoles,
     getConfigManagerRoles, setConfigManagerRoles,
+    getIARoles, setIARoles,
     VALID_KEYS,
 };

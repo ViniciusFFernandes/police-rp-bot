@@ -90,6 +90,24 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('cargo-ia')
+                .setDescription('Adiciona ou remove um cargo de Assuntos Internos')
+                .addRoleOption(opt =>
+                    opt.setName('cargo')
+                        .setDescription('Cargo a modificar')
+                        .setRequired(true)
+                )
+                .addStringOption(opt =>
+                    opt.setName('acao')
+                        .setDescription('Adicionar ou remover o cargo')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Adicionar', value: 'add' },
+                            { name: 'Remover',   value: 'remove' },
+                        )
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('cargo-gestor')
                 .setDescription('Adiciona ou remove um cargo gestor de configurações do bot (somente Administradores)')
                 .addRoleOption(opt =>
@@ -165,6 +183,17 @@ module.exports = {
             const verb = action === 'add' ? 'adicionado' : 'removido';
             return interaction.editReply({
                 content: `✅ Cargo ${role} **${verb}**.\nSupervisores atuais: ${list}`,
+            });
+        }
+
+        if (sub === 'cargo-ia') {
+            const role   = interaction.options.getRole('cargo');
+            const action = interaction.options.getString('acao');
+            const updated = await guildConfigService.setIARole(guildId, role, action === 'add');
+            const list = updated.length > 0 ? updated.map(id => `<@&${id}>`).join(', ') : 'Nenhum';
+            const verb = action === 'add' ? 'adicionado' : 'removido';
+            return interaction.editReply({
+                content: `✅ Cargo ${role} **${verb}** como Assuntos Internos.\nCargos de IA atuais: ${list}`,
             });
         }
 

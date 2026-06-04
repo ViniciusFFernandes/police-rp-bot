@@ -3,12 +3,11 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    StringSelectMenuBuilder,
 } = require('discord.js');
 const iaRepo = require('../repositories/iaRepository');
 const guildConfigRepo = require('../repositories/guildConfigRepository');
 const { COLOR } = require('../utils/embeds');
-const { formatTimestamp } = require('../utils/time');
+const { formatTimestamp, formatDateOnly } = require('../utils/time');
 
 const ORIGIN_LABEL = {
     civil:    '🟦 Civil (Pública)',
@@ -43,7 +42,7 @@ function buildBoardEmbed(inv) {
             { name: '📂 Origem', value: ORIGIN_LABEL[inv.origin] || inv.origin, inline: true },
             { name: '📊 Status', value: STATUS_LABEL[inv.status] || inv.status, inline: true },
             { name: '📅 Abertura', value: formatTimestamp(inv.opened_at), inline: true },
-            { name: '👮 Responsável pela Abertura', value: `<@${inv.opened_by_discord_id}>`, inline: true },
+            { name: '👮 Responsável', value: `<@${inv.opened_by_discord_id}>`, inline: true },
         );
 
     // Acusado
@@ -57,17 +56,15 @@ function buildBoardEmbed(inv) {
         { name: '🗺️ Distrito', value: distInfo, inline: true },
     );
 
-    // Indicativo de rádio no dia
     if (inv.radio_vehicle) {
-        const radioIndicator = [inv.involved_district, inv.radio_vehicle, inv.involved_callsign]
-            .filter(Boolean).join('-');
-        embed.addFields({ name: '📻 Indicativo de Rádio (dia)', value: `\`${radioIndicator}\``, inline: true });
+        embed.addFields({ name: '📻 Identificação (Dia)', value: `\`${inv.radio_vehicle}\``, inline: true });
     }
 
     // Detalhes do incidente
     const incidentFields = [];
     if (inv.incident_date || inv.incident_time) {
-        const dt = [inv.incident_date, inv.incident_time].filter(Boolean).join(' ');
+        const dt = [inv.incident_date ? formatDateOnly(inv.incident_date) : null, inv.incident_time]
+            .filter(Boolean).join(' ');
         incidentFields.push({ name: '🗓️ Data/Hora do Fato', value: dt, inline: true });
     }
     if (inv.incident_location) {
@@ -110,21 +107,27 @@ function buildBoardButtons(inv) {
     const rows = [];
 
     if (inv.status !== 'closed') {
-        const statusSelect = new StringSelectMenuBuilder()
-            .setCustomId(`ia_board:status:${inv.id}`)
-            .setPlaceholder('Alterar status da investigação')
-            .addOptions([
-                { label: '🟢 Ativa', value: 'active', description: 'Investigação em andamento' },
-                { label: '🟡 Suspensa', value: 'suspended', description: 'Investigação temporariamente suspensa' },
-            ]);
-        rows.push(new ActionRowBuilder().addComponents(statusSelect));
+        const activeBtn = new ButtonBuilder()
+            .setCustomId(`ia_board:status_active:${inv.id}`)
+            .setLabel('Ativar')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🟢')
+            .setDisabled(inv.status === 'active');
+
+        const suspendBtn = new ButtonBuilder()
+            .setCustomId(`ia_board:status_suspended:${inv.id}`)
+            .setLabel('Suspender')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('🟡')
+            .setDisabled(inv.status === 'suspended');
 
         const closeBtn = new ButtonBuilder()
             .setCustomId(`ia_board:close:${inv.id}`)
             .setLabel('Encerrar Investigação')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🔴');
-        rows.push(new ActionRowBuilder().addComponents(closeBtn));
+
+        rows.push(new ActionRowBuilder().addComponents(activeBtn, suspendBtn, closeBtn));
     } else if (!inv.penalty_status) {
         // Botões de penalidade após encerramento
         rows.push(new ActionRowBuilder().addComponents(

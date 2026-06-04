@@ -8,7 +8,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
-const { isAdmin, isSupervisor } = require('../utils/permissions');
+const { isIAStaff } = require('../utils/permissions');
 const pendingIA = require('../utils/pendingIA');
 const { COLOR } = require('../utils/embeds');
 
@@ -16,8 +16,8 @@ module.exports = {
     customId: 'ia',
 
     async execute(interaction) {
-        if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
-            return interaction.reply({ content: '❌ Sem permissão.', ephemeral: true });
+        if (!await isIAStaff(interaction.member)) {
+            return interaction.reply({ content: '❌ Sem permissão para gerenciar investigações internas.', ephemeral: true });
         }
 
         const [, action] = interaction.customId.split(':');

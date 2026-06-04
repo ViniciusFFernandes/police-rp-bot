@@ -50,6 +50,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde os quadros de investigações internas são publicados',
     },
+    ia_role_ids: {
+        label: 'Cargos de Assuntos Internos',
+        emoji: '🔍',
+        type: 'roles',
+        description: 'Cargos que podem abrir e gerenciar investigações internas',
+    },
 };
 
 async function setChannel(guildId, key, channel) {
@@ -63,6 +69,15 @@ async function setRole(guildId, role, add = true) {
         ? [...new Set([...current, role.id])]
         : current.filter(id => id !== role.id);
     await guildConfigRepo.setSupervisorRoles(guildId, updated);
+    return updated;
+}
+
+async function setIARole(guildId, role, add = true) {
+    const current = await guildConfigRepo.getIARoles(guildId);
+    const updated = add
+        ? [...new Set([...current, role.id])]
+        : current.filter(id => id !== role.id);
+    await guildConfigRepo.setIARoles(guildId, updated);
     return updated;
 }
 
@@ -119,4 +134,4 @@ async function buildConfigEmbed(guild) {
         .setTimestamp();
 }
 
-module.exports = { setChannel, setRole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };
+module.exports = { setChannel, setRole, setIARole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };
