@@ -27,7 +27,12 @@ module.exports = {
         )
         .addSubcommand(sub =>
             sub.setName('listar')
-                .setDescription('Lista investigações abertas neste servidor')
+                .setDescription('Lista investigações neste servidor')
+                .addUserOption(opt =>
+                    opt.setName('usuario')
+                        .setDescription('Filtra investigações em que este oficial foi o envolvido')
+                        .setRequired(false)
+                )
         )
         .addSubcommand(sub =>
             sub.setName('deletar')
@@ -125,11 +130,21 @@ module.exports = {
         }
 
         if (sub === 'listar') {
-            const iaRepo = require('../../repositories/iaRepository');
-            const cases  = await iaRepo.listByGuild(interaction.guildId);
+            const iaRepo      = require('../../repositories/iaRepository');
+            const filterUser  = interaction.options.getUser('usuario') ?? null;
+            const cases       = await iaRepo.listByGuild(interaction.guildId, {
+                involvedDiscordId: filterUser?.id ?? null,
+            });
+
+            const titulo = filterUser
+                ? `📂 Investigações — Envolvido: ${filterUser.displayName ?? filterUser.username}`
+                : '📂 Investigações Internas';
 
             if (cases.length === 0) {
-                return interaction.reply({ content: '📂 Nenhuma investigação encontrada neste servidor.', ephemeral: true });
+                const msg = filterUser
+                    ? `📂 Nenhuma investigação encontrada para <@${filterUser.id}>.`
+                    : '📂 Nenhuma investigação encontrada neste servidor.';
+                return interaction.reply({ content: msg, ephemeral: true });
             }
 
             const STATUS_ICON = { active: '🟢', suspended: '🟡', closed: '🔴' };
@@ -139,7 +154,7 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setColor(COLOR.INFO)
-                .setTitle('📂 Investigações Internas')
+                .setTitle(titulo)
                 .setDescription(lines.join('\n').slice(0, 4000))
                 .setFooter({ text: `${cases.length} investigação(ões) encontrada(s)` })
                 .setTimestamp();
