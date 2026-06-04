@@ -264,7 +264,16 @@ Com unidades cadastradas, o oficial as seleciona ao iniciar o turno. Sem unidade
 
 Com viaturas cadastradas, o oficial escolhe a viatura ao iniciar o turno e o canal de voz é criado como `Ford Explorer-3-A-12`.
 
-### Passo 6 — Canal de callsigns (opcional)
+### Passo 6 — Canal e cargos de Assuntos Internos (opcional)
+
+```
+/configurar canal-ia #assuntos-internos
+/configurar cargo-ia @Assuntos Internos Adicionar
+```
+
+Membros com o cargo de IA podem abrir e gerenciar investigações internas junto com Supervisores e Administradores.
+
+### Passo 7 — Canal de callsigns (opcional)
 
 ```
 /configurar canal-callsign #callsigns
@@ -272,7 +281,7 @@ Com viaturas cadastradas, o oficial escolhe a viatura ao iniciar o turno e o can
 
 O bot publica imediatamente um **quadro de callsigns** no canal e o mantém atualizado automaticamente sempre que um perfil for definido ou editado.
 
-### Passo 7 — Verificar configuração
+### Passo 8 — Verificar configuração
 
 ```
 /configuracoes
@@ -291,6 +300,7 @@ Exibe uma embed com o status de todos os itens configurados.
 | `/configurar canal-callsign` | Canal do quadro de callsigns automático |
 | `/configurar canal-ia` | Canal dos quadros de investigações de Assuntos Internos |
 | `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
+| `/configurar cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
 | `/configurar cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
 | `/configuracoes` | Exibe status de todas as configurações |
 
@@ -416,7 +426,7 @@ police-rp-bot/
 ├── src/
 │   ├── commands/
 │   │   ├── admin/
-│   │   │   ├── configurar.js        # /configurar (9 subcomandos, incluindo canal-ia)
+│   │   │   ├── configurar.js        # /configurar (10 subcomandos, incluindo canal-ia e cargo-ia)
 │   │   │   ├── configuracoes.js     # /configuracoes
 │   │   │   ├── veiculo.js           # /veiculo registrar|listar|remover
 │   │   │   └── unidade.js           # /unidade registrar|listar|remover
@@ -547,17 +557,29 @@ Exibe o perfil operacional. Ver perfil de outros é restrito a supervisores e ad
 
 ### Quadro de Callsigns
 
-Quando o canal de callsigns está configurado (`/configurar canal-callsign`), o bot mantém uma **mensagem única e persistente** nesse canal com o distrito e callsign de todos os oficiais configurados.
+Quando o canal de callsigns está configurado (`/configurar canal-callsign`), o bot mantém uma **mensagem única e persistente** nesse canal com todos os oficiais agrupados por distrito.
+
+Cada distrito é exibido em um bloco de código com colunas alinhadas de **Distintivo**, **Callsign** e **Nome**:
 
 ```
 📋 Quadro de Callsigns Operacionais
 
-@Vinicius — Distrito `3` · Callsign `12`
-@João     — Distrito `1` · Callsign `07`
-@Carlos   — Distrito `3` · Callsign `20`
+🗺️ Distrito 1
+┌────────────────────────────────┐
+DISTINT CSN   OFICIAL
+#0721   007   João Silva
+———     020   Carlos
+└────────────────────────────────┘
+
+🗺️ Distrito 3
+┌────────────────────────────────┐
+DISTINT CSN   OFICIAL
+#4521   012   Vinicius
+#1234   053   Pedro
+└────────────────────────────────┘
 ```
 
-A mensagem é editada automaticamente sempre que um perfil é criado ou alterado. Se a mensagem for deletada manualmente, é recriada na próxima atualização.
+A mensagem é editada automaticamente sempre que um perfil é criado ou alterado. Oficiais sem distintivo cadastrado aparecem com `———`. Se a mensagem for deletada manualmente, é recriada na próxima atualização.
 
 ---
 
@@ -662,6 +684,7 @@ Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
 | `/configurar` | `canal-callsign` | Canal do quadro de callsigns automático |
 | `/configurar` | `canal-ia` | Canal dos quadros de investigações internas |
 | `/configurar` | `cargo-supervisor` | Gerencia cargos supervisores |
+| `/configurar` | `cargo-ia` | Gerencia cargos de Assuntos Internos |
 | `/configurar` | `cargo-gestor` | Gerencia cargos gestores de configuração (somente Admins) |
 | `/configuracoes` | — | Exibe status de todas as configurações |
 
@@ -691,13 +714,14 @@ Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
 
 O módulo de Assuntos Internos permite abrir, acompanhar e encerrar **investigações internas** diretamente pelo Discord, com fluxo guiado por modais e um quadro persistente por investigação.
 
-### Configurar o canal de IA
+### Configurar o canal e os cargos de IA
 
 ```
 /configurar canal-ia #assuntos-internos
+/configurar cargo-ia @Assuntos Internos Adicionar
 ```
 
-Todos os quadros de investigação serão publicados nesse canal. Cada investigação gera uma mensagem própria com embed e botões interativos.
+Todos os quadros de investigação serão publicados nesse canal. Apenas **Administradores**, **Supervisores** e membros com o **cargo de Assuntos Internos** podem abrir e gerenciar investigações.
 
 ### Abrir uma investigação — `/ia abrir`
 
@@ -747,30 +771,31 @@ Cada investigação gera uma **embed persistente** no canal de IA com:
 
 #### Status da investigação
 
-O quadro inclui um menu para alterar o status enquanto estiver aberta:
+O quadro exibe dois botões para alterar o status enquanto estiver aberta. O botão do status atual fica desabilitado para indicar o estado vigente:
 
-| Status | Descrição |
+| Botão | Status resultante |
 |---|---|
-| 🟢 Ativa | Investigação em andamento |
-| 🟡 Suspensa | Temporariamente suspensa |
+| 🟢 Ativar | Investigação em andamento |
+| 🟡 Suspender | Temporariamente suspensa |
 
 #### Encerrar a investigação
 
-Clique em **Encerrar Investigação** para abrir o modal de encerramento:
+Clique em **🔴 Encerrar Investigação**. O fluxo tem duas etapas:
 
-| Campo | Descrição |
+**Etapa 1 — Veredicto** (select em português)
+
+| Opção | Descrição |
 |---|---|
-| Veredicto | `sustained` / `not_sustained` / `exonerated` / `unfounded` |
-| Recomendação de Penalidade | Suspensão, demissão, advertência, etc. (opcional) |
+| ✅ Sustentado | A infração foi provada e as evidências sustentam a acusação |
+| ⚠️ Não Sustentado | Não há provas suficientes para provar ou refutar |
+| 🔵 Exonerado | O fato ocorreu, mas a ação foi legal e dentro do protocolo |
+| ❌ Infundado | O fato alegado não ocorreu ou é comprovadamente falso |
 
-**Veredictos disponíveis:**
+Selecione o veredicto e clique em **Confirmar →**.
 
-| Valor | Nome | Descrição |
-|---|---|---|
-| `sustained` | Sustentado | A infração foi provada e as evidências sustentam a acusação |
-| `not_sustained` | Não Sustentado | Não há provas suficientes para provar ou refutar |
-| `exonerated` | Exonerado | O fato ocorreu, mas a ação foi legal e dentro do protocolo |
-| `unfounded` | Infundado | O fato alegado não ocorreu ou é comprovadamente falso |
+**Etapa 2 — Penalidade** (modal)
+
+Campo de texto para informar a recomendação de penalidade (opcional): suspensão, demissão, advertência, etc.
 
 #### Status da penalidade
 
@@ -790,30 +815,31 @@ Exibe todas as investigações do servidor com status e oficial envolvido.
 
 ## Controle de permissões
 
-| Ação | Oficial | Responsável da Unidade | Supervisor | Gestor Config | Admin |
-|---|:---:|:---:|:---:|:---:|:---:|
-| `/oficial definir` (próprio perfil) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/oficial definir` (perfil alheio) | ❌ | ❌ | ✅ | ❌ | ✅ |
-| `/oficial ver` (próprio) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/oficial ver` (alheio) | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Iniciar turno | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Pausar / Retornar (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Pausar / Retornar (unidade alheia) | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Arma Perdida — própria arma | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Arma Perdida — arma de outro membro | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Encerrar turno (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Encerrar turno alheio | ❌ | ❌ | ✅ | ❌ | ✅ |
-| `/arma registrar` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/arma arsenal` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/arma extravio` (própria arma) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/arma extravio` (qualquer arma) | ❌ | ❌ | ✅ | ❌ | ✅ |
-| `/historico` | ❌ | ❌ | ✅ | ❌ | ✅ |
-| `/ia abrir`, `/ia listar`, alterar status, encerrar | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Marcar status de penalidade | ❌ | ❌ | ✅ | ❌ | ✅ |
-| `/configurar`, `/configuracoes`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ✅ | ✅ |
-| `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Ação | Oficial | Resp. Unidade | Supervisor | Membro IA | Gestor Config | Admin |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| `/oficial definir` (próprio perfil) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/oficial definir` (perfil alheio) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/oficial ver` (próprio) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/oficial ver` (alheio) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Iniciar turno | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Pausar / Retornar (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Pausar / Retornar (unidade alheia) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Arma Perdida — própria arma | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arma Perdida — arma de outro membro | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Encerrar turno (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Encerrar turno alheio | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/arma registrar` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma arsenal` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma extravio` (própria arma) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma extravio` (qualquer arma) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/historico` | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/ia abrir`, `/ia listar`, alterar status, encerrar | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| Marcar status de penalidade | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| `/configurar`, `/configuracoes`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 > **Responsável da unidade** = oficial que executou `/iniciar` (papel `LEADER`).
+> **Membro de IA** = cargo definido via `/configurar cargo-ia`. Acesso exclusivo ao módulo de Assuntos Internos.
 > **Gestor de Configuração** = cargo definido via `/configurar cargo-gestor`. Pode configurar o bot mas não pode gerenciar os próprios cargos gestores.
 
 ---
@@ -866,6 +892,7 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `callsign_channel_id` | Canal do quadro de callsigns |
 | `callsign_message_id` | ID da mensagem persistente do quadro (interno) |
 | `ia_channel_id` | Canal de publicação dos quadros de investigações |
+| `ia_role_ids` | JSON array de cargos de Assuntos Internos |
 | `supervisor_role_ids` | JSON array de cargos supervisores |
 | `config_manager_role_ids` | JSON array de cargos gestores de configuração |
 
