@@ -35,6 +35,16 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('ver')
+                .setDescription('Exibe os detalhes de uma investigação pelo número do caso')
+                .addStringOption(opt =>
+                    opt.setName('numero')
+                        .setDescription('Número do caso (ex: IA-2026-001)')
+                        .setRequired(true)
+                        .setMaxLength(30)
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('deletar')
                 .setDescription('Deleta permanentemente uma investigação (somente admins e supervisores)')
                 .addStringOption(opt =>
@@ -91,6 +101,23 @@ module.exports = {
                 ],
                 ephemeral: true,
             });
+        }
+
+        if (sub === 'ver') {
+            const iaRepo     = require('../../repositories/iaRepository');
+            const iaService  = require('../../services/iaService');
+            const caseNumber = interaction.options.getString('numero').trim();
+            const inv        = await iaRepo.findByCaseNumber(caseNumber, interaction.guildId);
+
+            if (!inv) {
+                return interaction.reply({
+                    content: `❌ Investigação **${caseNumber}** não encontrada.`,
+                    ephemeral: true,
+                });
+            }
+
+            const embed = iaService.buildBoardEmbed(inv);
+            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
         if (sub === 'deletar') {
