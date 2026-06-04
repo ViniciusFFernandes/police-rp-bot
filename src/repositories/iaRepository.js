@@ -80,6 +80,18 @@ async function updatePenaltyStatus(id, guildId, penaltyStatus) {
     );
 }
 
+async function findByCaseNumber(caseNumber, guildId) {
+    const { rows } = await db.query(
+        'SELECT * FROM ia_investigations WHERE UPPER(case_number) = UPPER($1) AND guild_id = $2',
+        [caseNumber, guildId]
+    );
+    return rows[0] || null;
+}
+
+async function remove(id, guildId) {
+    await db.query('DELETE FROM ia_investigations WHERE id = $1 AND guild_id = $2', [id, guildId]);
+}
+
 async function listByGuild(guildId, status = null) {
     const params = [guildId];
     let where = 'WHERE guild_id = $1';
@@ -91,4 +103,4 @@ async function listByGuild(guildId, status = null) {
     return rows;
 }
 
-module.exports = { nextCaseNumber, create, findById, updateBoard, updateStatus, close, updatePenaltyStatus, listByGuild };
+module.exports = { nextCaseNumber, create, findById, findByCaseNumber, remove, updateBoard, updateStatus, close, updatePenaltyStatus, listByGuild };

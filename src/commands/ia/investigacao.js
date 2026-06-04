@@ -7,7 +7,7 @@ const {
     UserSelectMenuBuilder,
     EmbedBuilder,
 } = require('discord.js');
-const { isIAStaff } = require('../../utils/permissions');
+const { isIAStaff, isAdmin, isSupervisor } = require('../../utils/permissions');
 const pendingIA = require('../../utils/pendingIA');
 const { COLOR } = require('../../utils/embeds');
 
@@ -28,6 +28,16 @@ module.exports = {
         .addSubcommand(sub =>
             sub.setName('listar')
                 .setDescription('Lista investigações abertas neste servidor')
+        )
+        .addSubcommand(sub =>
+            sub.setName('deletar')
+                .setDescription('Deleta permanentemente uma investigação (somente admins e supervisores)')
+                .addStringOption(opt =>
+                    opt.setName('numero')
+                        .setDescription('Número do caso (ex: IA-2026-001)')
+                        .setRequired(true)
+                        .setMaxLength(30)
+                )
         ),
 
     async execute(interaction) {
@@ -74,6 +84,42 @@ module.exports = {
                     new ActionRowBuilder().addComponents(officerSelect),
                     new ActionRowBuilder().addComponents(nextBtn),
                 ],
+                ephemeral: true,
+            });
+        }
+
+        if (sub === 'deletar') {
+            if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+                return interaction.reply({
+                    content: '❌ Apenas **Administradores** e **Supervisores** podem deletar investigações.',
+                    ephemeral: true,
+                });
+            }
+
+            const iaRepo     = require('../../repositories/iaRepository');
+            const caseNumber = interaction.options.getString('numero').trim();
+            const inv        = await iaRepo.findByCaseNumber(caseNumber, interaction.guildId);
+
+            if (!inv) {
+                return interaction.reply({
+                    content: `❌ Investigação **${caseNumber}** não encontrada neste servidor.`,
+                    ephemeral: true,
+                });
+            }
+
+            // Tenta remover a mensagem do quadro no canal de IA
+            if (inv.board_message_id && inv.board_channel_id) {
+                const ch = interaction.guild.channels.cache.get(inv.board_channel_id);
+                if (ch) {
+                    const msg = await ch.messages.fetch(inv.board_message_id).catch(() => null);
+                    if (msg) await msg.delete().catch(() => {});
+                }
+            }
+
+            await iaRepo.remove(inv.id, interaction.guildId);
+
+            return interaction.reply({
+                content: `🗑️ Investigação **${inv.case_number}** deletada permanentemente.`,
                 ephemeral: true,
             });
         }
