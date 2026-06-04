@@ -4,7 +4,7 @@ const officialProfileRepo = require('../repositories/officialProfileRepository')
 const { COLOR } = require('../utils/embeds');
 const logger = require('../utils/logger');
 
-// Constrói o embed do quadro de callsigns com todos os perfis do servidor
+// Constrói o embed do quadro de callsigns agrupado por distrito
 function buildBoardEmbed(guild, profiles) {
     const embed = new EmbedBuilder()
         .setColor(COLOR.INFO)
@@ -17,11 +17,26 @@ function buildBoardEmbed(guild, profiles) {
         return embed;
     }
 
-    const lines = profiles.map(p =>
-        `<@${p.discord_id}> — Distrito \`${p.district}\` · Callsign \`${p.callsign_num}\``
-    ).join('\n');
+    // Agrupa perfis por distrito (já vêm ordenados por district, callsign_num do banco)
+    const byDistrict = new Map();
+    for (const p of profiles) {
+        if (!byDistrict.has(p.district)) byDistrict.set(p.district, []);
+        byDistrict.get(p.district).push(p);
+    }
 
-    embed.setDescription(lines);
+    for (const [district, members] of byDistrict) {
+        const lines = members.map(p => {
+            const badge    = p.badge_num    ? `#${p.badge_num.padStart(4, '0')}` : '——————';
+            const callsign = p.callsign_num.padStart(3, '0');
+            return `\`${badge}\` \`${callsign}\`  <@${p.discord_id}>`;
+        }).join('\n');
+
+        embed.addFields({
+            name: `🗺️ Distrito ${district}`,
+            value: `\`${'DISTINT'.padEnd(7)}\` \`CSN\`  Oficial\n${lines}`,
+            inline: false,
+        });
+    }
 
     return embed;
 }
