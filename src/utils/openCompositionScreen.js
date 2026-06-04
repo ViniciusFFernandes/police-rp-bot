@@ -83,12 +83,6 @@ async function openCompositionScreen(interaction) {
             .setStyle(ButtonStyle.Success)
             .setEmoji('✅')
             .setDisabled(hasUnits),
-        new ButtonBuilder()
-            .setCustomId('shiftcompose:solo')
-            .setLabel('Apenas eu')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('👤')
-            .setDisabled(hasUnits),
     ));
 
     const previewCallsign = hasUnits
@@ -99,7 +93,7 @@ async function openCompositionScreen(interaction) {
     if (hasUnits)            notes.push('Selecione a **unidade**.');
     else                     notes.push('⚠️ Nenhuma unidade cadastrada — use `/unidade registrar`.');
     if (vehicles.length > 0) notes.push('Selecione a **viatura** (opcional).');
-    notes.push('Selecione **oficiais adicionais** (opcional).');
+    notes.push('Adicione **oficiais adicionais** se houver mais alguém na viatura (opcional).');
 
     const content =
         `🚔 **Montagem da Unidade Operacional**\n` +

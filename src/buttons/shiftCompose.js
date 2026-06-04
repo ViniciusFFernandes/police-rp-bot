@@ -76,31 +76,6 @@ module.exports = {
             if (action === 'unit') {
                 pendingComposition.setUnit(interaction.guildId, interaction.user.id, interaction.values[0]);
 
-                // Reabilita os botões ao selecionar uma unidade
-                const confirmBtn = new ButtonBuilder()
-                    .setCustomId('shiftcompose:confirm')
-                    .setLabel('Iniciar Turno')
-                    .setStyle(ButtonStyle.Success)
-                    .setEmoji('✅');
-
-                const soloBtn = new ButtonBuilder()
-                    .setCustomId('shiftcompose:solo')
-                    .setLabel('Apenas eu')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('👤');
-
-                const rows = interaction.message.components.map(row => {
-                    const newRow = new ActionRowBuilder();
-                    newRow.addComponents(
-                        row.components.map(c => {
-                            if (c.customId === 'shiftcompose:confirm') return confirmBtn;
-                            if (c.customId === 'shiftcompose:solo')    return soloBtn;
-                            return ActionRowBuilder.from(row).components.find(x => x.customId === c.customId) || c;
-                        })
-                    );
-                    return newRow;
-                });
-
                 const { district, callsignNum } = pendingComposition.get(interaction.guildId, interaction.user.id);
                 const unit = interaction.values[0];
                 const preview = district && callsignNum ? buildCallsign(district, unit, callsignNum) : unit;
@@ -114,8 +89,6 @@ module.exports = {
                         const rebuilt = ActionRowBuilder.from(row);
                         rebuilt.components = row.components.map(c => {
                             if (c.customId === 'shiftcompose:confirm')
-                                return ButtonBuilder.from(c).setDisabled(false);
-                            if (c.customId === 'shiftcompose:solo')
                                 return ButtonBuilder.from(c).setDisabled(false);
                             return c;
                         });
@@ -136,15 +109,10 @@ module.exports = {
                 return interaction.deferUpdate();
             }
 
-            // Confirmar com os membros selecionados pelo UserSelectMenu
+            // Inicia turno com os membros selecionados (pode ser nenhum = solo)
             if (action === 'confirm') {
                 const { memberIds } = pendingComposition.get(interaction.guildId, interaction.user.id);
                 return startFromComposition(interaction, memberIds);
-            }
-
-            // Unidade individual — descarta qualquer membro selecionado
-            if (action === 'solo') {
-                return startFromComposition(interaction, []);
             }
 
             // Remodulação — reabre tela de composição com perfil do oficial
