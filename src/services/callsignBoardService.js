@@ -25,15 +25,16 @@ function buildBoardEmbed(guild, profiles) {
     }
 
     for (const [district, members] of byDistrict) {
-        const SEP    = '-'.repeat(38);
-        const header = `${'DISTINT'.padEnd(10)}${'CSN'.padEnd(6)}OFICIAL`;
-        const lines  = members.map(p => {
-            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(10) : '———'.padEnd(10);
-            const callsign = p.callsign_num.padEnd(6);
-            // Se o display_name tiver o formato "badge-csn | Nome", extrai só o nome
-            const raw  = p.display_name || '—';
-            const name = raw.includes(' | ') ? raw.split(' | ').slice(1).join(' | ') : raw;
-            return `${badge}${callsign}${name.slice(0, 20)}`;
+        const BADGE_W = 10;
+        const CSN_W   = 6;
+        const header  = `${'DISTINT'.padEnd(BADGE_W)}${'CSN'.padEnd(CSN_W)}OFICIAL`;
+        const SEP     = '-'.repeat(header.length);
+        const lines   = members.map(p => {
+            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(BADGE_W) : '———'.padEnd(BADGE_W);
+            const callsign = p.callsign_num.padEnd(CSN_W);
+            const raw      = p.display_name || '—';
+            const name     = raw.includes(' | ') ? raw.split(' | ').slice(1).join(' | ') : raw;
+            return `${badge}${callsign}${name.slice(0, 16)}`;
         });
 
         embed.addFields({
