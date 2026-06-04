@@ -31,10 +31,10 @@ function buildBoardEmbed(guild, profiles) {
             24
         );
 
-        const header = `${'DISTINT'.padEnd(8)}${'CSN'.padEnd(6)}OFICIAL`;
+        const header = `${'DISTINT'.padEnd(12)}${'CSN'.padEnd(8)}OFICIAL`;
         const lines  = members.map(p => {
-            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(8) : '———'.padEnd(8);
-            const callsign = p.callsign_num.padEnd(6);
+            const badge    = p.badge_num ? `#${p.badge_num}`.padEnd(12) : '———'.padEnd(12);
+            const callsign = p.callsign_num.padEnd(8);
             const name     = (p.display_name || '—').slice(0, maxName);
             return `${badge}${callsign}${name}`;
         });
