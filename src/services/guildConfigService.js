@@ -56,6 +56,12 @@ const CONFIG_META = {
         type: 'roles',
         description: 'Cargos que podem abrir e gerenciar investigações internas',
     },
+    police_role_ids: {
+        label: 'Cargos Policiais (Acesso ao Bot)',
+        emoji: '🚔',
+        type: 'roles',
+        description: 'Somente esses cargos podem usar o bot. Se vazio, todos têm acesso.',
+    },
 };
 
 async function setChannel(guildId, key, channel) {
@@ -69,6 +75,15 @@ async function setRole(guildId, role, add = true) {
         ? [...new Set([...current, role.id])]
         : current.filter(id => id !== role.id);
     await guildConfigRepo.setSupervisorRoles(guildId, updated);
+    return updated;
+}
+
+async function setPoliceRole(guildId, role, add = true) {
+    const current = await guildConfigRepo.getPoliceRoles(guildId);
+    const updated = add
+        ? [...new Set([...current, role.id])]
+        : current.filter(id => id !== role.id);
+    await guildConfigRepo.setPoliceRoles(guildId, updated);
     return updated;
 }
 
@@ -134,4 +149,4 @@ async function buildConfigEmbed(guild) {
         .setTimestamp();
 }
 
-module.exports = { setChannel, setRole, setIARole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };
+module.exports = { setChannel, setRole, setPoliceRole, setIARole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };

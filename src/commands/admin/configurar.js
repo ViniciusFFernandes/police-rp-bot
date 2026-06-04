@@ -90,6 +90,24 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('cargo-policia')
+                .setDescription('Adiciona ou remove um cargo com acesso ao bot (sem cargos configurados, todos podem usar)')
+                .addRoleOption(opt =>
+                    opt.setName('cargo')
+                        .setDescription('Cargo a modificar')
+                        .setRequired(true)
+                )
+                .addStringOption(opt =>
+                    opt.setName('acao')
+                        .setDescription('Adicionar ou remover o cargo')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Adicionar', value: 'add' },
+                            { name: 'Remover',   value: 'remove' },
+                        )
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('cargo-ia')
                 .setDescription('Adiciona ou remove um cargo de Assuntos Internos')
                 .addRoleOption(opt =>
@@ -183,6 +201,17 @@ module.exports = {
             const verb = action === 'add' ? 'adicionado' : 'removido';
             return interaction.editReply({
                 content: `✅ Cargo ${role} **${verb}**.\nSupervisores atuais: ${list}`,
+            });
+        }
+
+        if (sub === 'cargo-policia') {
+            const role   = interaction.options.getRole('cargo');
+            const action = interaction.options.getString('acao');
+            const updated = await guildConfigService.setPoliceRole(guildId, role, action === 'add');
+            const list = updated.length > 0 ? updated.map(id => `<@&${id}>`).join(', ') : 'Nenhum (todos podem usar o bot)';
+            const verb = action === 'add' ? 'adicionado' : 'removido';
+            return interaction.editReply({
+                content: `✅ Cargo ${role} **${verb}** como cargo policial.\nCargos com acesso ao bot: ${list}`,
             });
         }
 

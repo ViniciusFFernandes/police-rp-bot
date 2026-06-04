@@ -19,6 +19,16 @@ async function isConfigManager(member) {
     return roles.some(roleId => member.roles.cache.has(roleId));
 }
 
+// Verifica se o membro pode usar o bot. Se nenhum cargo policial estiver
+// configurado, todos os membros têm acesso (compatibilidade retroativa).
+// Administradores do servidor sempre passam.
+async function hasPoliceAccess(member) {
+    if (isAdmin(member)) return true;
+    const roles = await guildConfigRepo.getPoliceRoles(member.guild.id);
+    if (roles.length === 0) return true; // sem restrição configurada
+    return roles.some(roleId => member.roles.cache.has(roleId));
+}
+
 // Pode usar comandos e interagir com quadros de Assuntos Internos
 async function isIAStaff(member) {
     if (isAdmin(member)) return true;
@@ -35,4 +45,4 @@ async function canManageShift(interaction, shiftOwnerId) {
     return false;
 }
 
-module.exports = { isSupervisor, isAdmin, isConfigManager, isIAStaff, canManageShift };
+module.exports = { isSupervisor, isAdmin, isConfigManager, isIAStaff, hasPoliceAccess, canManageShift };
