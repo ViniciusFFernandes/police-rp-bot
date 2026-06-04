@@ -44,6 +44,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde o quadro de callsigns dos oficiais é mantido',
     },
+    ia_channel_id: {
+        label: 'Canal de Assuntos Internos',
+        emoji: '🔍',
+        type: 'channel',
+        description: 'Canal onde os quadros de investigações internas são publicados',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

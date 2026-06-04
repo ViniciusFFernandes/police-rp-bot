@@ -23,10 +23,11 @@ Suporta **múltiplos servidores simultaneamente** — cada servidor possui confi
 13. [Deploy no Render](#deploy-no-render)
 14. [Estrutura de pastas](#estrutura-de-pastas)
 15. [Funcionalidades](#funcionalidades)
-16. [Controle de permissões](#controle-de-permissões)
-17. [Banco de dados](#banco-de-dados)
-18. [Solução de problemas](#solução-de-problemas)
-19. [Roadmap](#roadmap)
+16. [Assuntos Internos (IA)](#assuntos-internos-ia)
+17. [Controle de permissões](#controle-de-permissões)
+18. [Banco de dados](#banco-de-dados)
+19. [Solução de problemas](#solução-de-problemas)
+20. [Roadmap](#roadmap)
 
 ---
 
@@ -49,6 +50,7 @@ O **Police RP Bot** é um sistema completo para gerenciar as operações de um d
 | Relatórios escritos manualmente | Gerado automaticamente com motivo de encerramento |
 | Reabrir turno manualmente após mudança de equipe | Fluxo de **Remodulação** com nova unidade imediata |
 | Histórico apenas de quem liderou | `/historico` contabiliza participações como líder e como membro |
+| Investigações internas no chat | Sistema completo de IA com fluxo guiado, quadro persistente e status |
 | Configuração restrita ao admin do Discord | Cargos gestores de configuração configuráveis pelo admin |
 | Configuração via arquivo `.env` | Tudo configurável via comandos slash, por servidor |
 | Canal de turnos poluído | Mensagens de usuários deletadas automaticamente em 10s |
@@ -287,6 +289,7 @@ Exibe uma embed com o status de todos os itens configurados.
 | `/configurar canal-armamento` | Canal de notificações de armamento |
 | `/configurar categoria-voz` | Categoria dos canais de voz automáticos |
 | `/configurar canal-callsign` | Canal do quadro de callsigns automático |
+| `/configurar canal-ia` | Canal dos quadros de investigações de Assuntos Internos |
 | `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
 | `/configurar cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
 | `/configuracoes` | Exibe status de todas as configurações |
@@ -413,13 +416,15 @@ police-rp-bot/
 ├── src/
 │   ├── commands/
 │   │   ├── admin/
-│   │   │   ├── configurar.js        # /configurar (7 subcomandos)
+│   │   │   ├── configurar.js        # /configurar (9 subcomandos, incluindo canal-ia)
 │   │   │   ├── configuracoes.js     # /configuracoes
 │   │   │   ├── veiculo.js           # /veiculo registrar|listar|remover
 │   │   │   └── unidade.js           # /unidade registrar|listar|remover
 │   │   ├── shift/
 │   │   │   ├── iniciar.js           # /iniciar → carrega perfil e abre composição
-│   │   │   └── oficial.js           # /oficial definir|ver
+│   │   │   └── oficial.js           # /oficial definir|ver (com distintivo)
+│   │   ├── ia/
+│   │   │   └── investigacao.js      # /ia abrir|listar
 │   │   ├── history/
 │   │   │   └── historico.js         # /historico resumo|turnos|arsenal
 │   │   └── weapon/
@@ -434,16 +439,22 @@ police-rp-bot/
 │   ├── buttons/
 │   │   ├── shiftButtons.js          # Pausar, Retornar, Arma Perdida, Adicionar Arma, Encerrar
 │   │   ├── shiftCompose.js          # Seleção de unidade/viatura/membros + confirmação
-│   │   └── shiftEnd.js              # Motivo de encerramento + fluxo de remodulação
+│   │   ├── shiftEnd.js              # Motivo de encerramento + fluxo de remodulação
+│   │   ├── iaFlow.js                # Seleção de origem/oficial + abertura dos modais de IA
+│   │   └── iaBoard.js               # Botões do quadro: alterar status, encerrar, penalidade
 │   │
 │   ├── modals/
 │   │   ├── endReasonModal.js        # Encerramento com motivo "Outro" (texto livre)
 │   │   ├── weaponLossModal.js       # Extravio durante turno
-│   │   └── addWeaponModal.js        # Adição de arma ao turno
+│   │   ├── addWeaponModal.js        # Adição de arma ao turno
+│   │   ├── iaDetailsModal.js        # Detalhes do incidente (etapa 2 do fluxo de IA)
+│   │   ├── iaDescriptionModal.js    # Descrição + provas; cria a investigação (etapa 3)
+│   │   └── iaCloseModal.js          # Veredicto + penalidade ao encerrar investigação
 │   │
 │   ├── services/
 │   │   ├── shiftService.js          # Lógica de turno (start/pause/resume/end/loss/addWeapon)
 │   │   ├── callsignBoardService.js  # Cria/edita a mensagem do quadro de callsigns
+│   │   ├── iaService.js             # Embed do quadro de investigação + publicação/atualização
 │   │   └── guildConfigService.js    # Lógica de configuração por servidor
 │   │
 │   ├── repositories/
@@ -454,7 +465,8 @@ police-rp-bot/
 │   │   ├── weaponRepository.js
 │   │   ├── weaponLossRepository.js
 │   │   ├── officialWeaponRepository.js
-│   │   ├── officialProfileRepository.js  # Perfil operacional (distrito + callsign)
+│   │   ├── officialProfileRepository.js  # Perfil operacional (distrito + callsign + distintivo)
+│   │   ├── iaRepository.js               # CRUD das investigações internas
 │   │   ├── vehicleRepository.js
 │   │   ├── unitRepository.js
 │   │   └── guildConfigRepository.js
@@ -474,6 +486,7 @@ police-rp-bot/
 │   │   ├── permissions.js           # isSupervisor, isAdmin, isConfigManager, canManageShift
 │   │   ├── configGuard.js
 │   │   ├── pendingComposition.js    # Store temporário entre interações de composição
+│   │   ├── pendingIA.js             # Store temporário do fluxo multi-etapa de IA (TTL 15min)
 │   │   ├── openCompositionScreen.js # Abre tela de montagem da unidade (reutilizado)
 │   │   └── guildWhitelist.js
 │   │
@@ -513,15 +526,16 @@ police-rp-bot/
 
 Antes de usar `/iniciar` pela primeira vez, cada oficial deve configurar seu perfil com distrito e callsign. Isso elimina a necessidade de digitar essas informações a cada turno.
 
-#### `/oficial definir <distrito> <callsign> [@usuario]`
+#### `/oficial definir <distrito> <callsign> [distintivo] [@usuario]`
 
-Define o distrito e callsign do oficial neste servidor.
+Define o distrito, callsign e distintivo (badge) do oficial neste servidor.
 
 - **Sem `@usuario`:** define o próprio perfil.
 - **Com `@usuario`:** define o perfil de outro oficial — restrito a supervisores e administradores.
+- **`distintivo`** é opcional mas necessário para que investigações de IA preencham o campo automaticamente.
 
 ```
-/oficial definir distrito:3 callsign:12
+/oficial definir distrito:3 callsign:12 distintivo:4521
 /oficial definir distrito:1 callsign:07 usuario:@João
 ```
 
@@ -646,6 +660,7 @@ Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
 | `/configurar` | `canal-armamento` | Canal de notificações de armamento |
 | `/configurar` | `categoria-voz` | Categoria dos canais de voz automáticos |
 | `/configurar` | `canal-callsign` | Canal do quadro de callsigns automático |
+| `/configurar` | `canal-ia` | Canal dos quadros de investigações internas |
 | `/configurar` | `cargo-supervisor` | Gerencia cargos supervisores |
 | `/configurar` | `cargo-gestor` | Gerencia cargos gestores de configuração (somente Admins) |
 | `/configuracoes` | — | Exibe status de todas as configurações |
@@ -672,6 +687,107 @@ Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
 
 ---
 
+## Assuntos Internos (IA)
+
+O módulo de Assuntos Internos permite abrir, acompanhar e encerrar **investigações internas** diretamente pelo Discord, com fluxo guiado por modais e um quadro persistente por investigação.
+
+### Configurar o canal de IA
+
+```
+/configurar canal-ia #assuntos-internos
+```
+
+Todos os quadros de investigação serão publicados nesse canal. Cada investigação gera uma mensagem própria com embed e botões interativos.
+
+### Abrir uma investigação — `/ia abrir`
+
+Restrito a **Supervisores** e **Administradores**. O fluxo tem 3 etapas:
+
+**Etapa 1 — Identificação**
+- Selecione a **origem** da investigação:
+  - 🟦 **Civil (Pública)** — denúncia feita por civil externo
+  - 🟥 **Interna (Blue-on-Blue)** — denúncia feita por outro policial
+  - ⬛ **Uso de Força Crítico (OIS)** — Officer-Involved Shooting
+- Selecione o **oficial acusado/envolvido** (UserSelect)
+- Clique em **Continuar →**
+
+**Etapa 2 — Detalhes do Incidente** (modal)
+| Campo | Obrigatório | Descrição |
+|---|:---:|---|
+| Viatura no dia | Não | Viatura do indicativo de rádio (ex: Eagle-01) |
+| Data e Hora do Fato | Não | Formato DD/MM/AAAA HH:MM |
+| Local do Incidente | Não | Endereço ou ponto de referência |
+| Classificação / Motivo | **Sim** | Tipo de infração (ex: Uso excessivo de força) |
+| Identificação do Reclamante | Não | Nome, documento ou @Discord |
+
+**Etapa 3 — Descrição e Provas** (modal)
+| Campo | Obrigatório | Descrição |
+|---|:---:|---|
+| Descrição do Ocorrido | **Sim** | Relato detalhado do fato |
+| Provas / Evidências | Não | Links de fotos/vídeos ou descrição das provas |
+
+Ao confirmar, a investigação é criada com número sequencial (`IA-2026-001`) e o quadro é publicado automaticamente no canal configurado.
+
+> O callsign, distintivo e distrito do acusado são preenchidos automaticamente a partir do perfil do oficial (cadastrado via `/oficial definir`).
+
+---
+
+### Quadro da investigação
+
+Cada investigação gera uma **embed persistente** no canal de IA com:
+
+- Número do caso, origem, status e data de abertura
+- Responsável pela abertura da investigação
+- Acusado/envolvido com callsign, distintivo e distrito
+- Indicativo de rádio no dia do incidente (`Distrito-Viatura-Callsign`)
+- Data/hora, local e classificação do incidente
+- Identificação do reclamante (se informada)
+- Descrição do ocorrido
+- Provas e evidências
+
+#### Status da investigação
+
+O quadro inclui um menu para alterar o status enquanto estiver aberta:
+
+| Status | Descrição |
+|---|---|
+| 🟢 Ativa | Investigação em andamento |
+| 🟡 Suspensa | Temporariamente suspensa |
+
+#### Encerrar a investigação
+
+Clique em **Encerrar Investigação** para abrir o modal de encerramento:
+
+| Campo | Descrição |
+|---|---|
+| Veredicto | `sustained` / `not_sustained` / `exonerated` / `unfounded` |
+| Recomendação de Penalidade | Suspensão, demissão, advertência, etc. (opcional) |
+
+**Veredictos disponíveis:**
+
+| Valor | Nome | Descrição |
+|---|---|---|
+| `sustained` | Sustentado | A infração foi provada e as evidências sustentam a acusação |
+| `not_sustained` | Não Sustentado | Não há provas suficientes para provar ou refutar |
+| `exonerated` | Exonerado | O fato ocorreu, mas a ação foi legal e dentro do protocolo |
+| `unfounded` | Infundado | O fato alegado não ocorreu ou é comprovadamente falso |
+
+#### Status da penalidade
+
+Após encerrar, o quadro exibe três botões para marcar a aplicação da penalidade:
+
+| Botão | Significado |
+|---|---|
+| ✅ Penalidade Aplicada | Penalidade aplicada conforme recomendado |
+| ❌ Não Aplicada | Penalidade não foi aplicada |
+| 🔶 Aplicada com Modificações | Penalidade aplicada com alterações |
+
+### Listar investigações — `/ia listar`
+
+Exibe todas as investigações do servidor com status e oficial envolvido.
+
+---
+
 ## Controle de permissões
 
 | Ação | Oficial | Responsável da Unidade | Supervisor | Gestor Config | Admin |
@@ -692,6 +808,8 @@ Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
 | `/arma extravio` (própria arma) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `/arma extravio` (qualquer arma) | ❌ | ❌ | ✅ | ❌ | ✅ |
 | `/historico` | ❌ | ❌ | ✅ | ❌ | ✅ |
+| `/ia abrir`, `/ia listar`, alterar status, encerrar | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Marcar status de penalidade | ❌ | ❌ | ✅ | ❌ | ✅ |
 | `/configurar`, `/configuracoes`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ✅ | ✅ |
 | `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ✅ |
 
@@ -710,7 +828,8 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | Tabela | Descrição |
 |---|---|
 | `users` | Oficiais registrados (upsert automático ao interagir) |
-| `official_profiles` | Perfil operacional por oficial + servidor (distrito, callsign) |
+| `official_profiles` | Perfil operacional por oficial + servidor (distrito, callsign, distintivo) |
+| `ia_investigations` | Investigações internas com todos os dados, status e veredicto |
 | `shifts` | Turnos/unidades operacionais — `user_id` é o líder |
 | `shift_members` | Participantes de cada unidade (`LEADER` / `MEMBER`) |
 | `pauses` | Pausas com timestamps e duração |
@@ -746,6 +865,7 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `voice_category_id` | Categoria dos canais de voz |
 | `callsign_channel_id` | Canal do quadro de callsigns |
 | `callsign_message_id` | ID da mensagem persistente do quadro (interno) |
+| `ia_channel_id` | Canal de publicação dos quadros de investigações |
 | `supervisor_role_ids` | JSON array de cargos supervisores |
 | `config_manager_role_ids` | JSON array de cargos gestores de configuração |
 
@@ -764,6 +884,8 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `009_units.sql` | Unidades operacionais por servidor |
 | `010_config_manager_roles.sql` | `config_manager_role_ids` em `guild_config` |
 | `011_official_profiles.sql` | Perfil operacional do oficial |
+| `012_add_badge_to_profiles.sql` | Coluna `badge_num` (distintivo) em `official_profiles` |
+| `013_ia_investigations.sql` | Tabela `ia_investigations` — sistema de Assuntos Internos |
 
 ---
 
@@ -845,6 +967,11 @@ pm2 logs police-bot --err
 ### v1.3 — Ocorrências
 - Sistema de registro de ocorrências vinculado ao turno ativo
 - Categorias: abordagem, perseguição, prisão, etc.
+
+### v1.4 — Assuntos Internos (melhorias)
+- Múltiplos acusados/envolvidos por investigação
+- Busca de investigação por número de caso ou oficial
+- Histórico de alterações de status com auditoria
 
 ### v2.0 — Dashboard Web
 - Painel web para visualização de estatísticas por servidor

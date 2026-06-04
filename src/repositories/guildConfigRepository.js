@@ -9,6 +9,7 @@ const VALID_KEYS = [
     'config_manager_role_ids',
     'callsign_channel_id',
     'callsign_message_id',   // interno — ID da mensagem persistente do quadro
+    'ia_channel_id',
 ];
 
 async function get(guildId, key) {

@@ -62,6 +62,16 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('canal-ia')
+                .setDescription('Canal onde os quadros das investigações de Assuntos Internos são publicados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('cargo-supervisor')
                 .setDescription('Adiciona ou remove um cargo supervisor')
                 .addRoleOption(opt =>
@@ -124,6 +134,7 @@ module.exports = {
             'canal-armamento':  'weapon_report_channel_id',
             'categoria-voz':    'voice_category_id',
             'canal-callsign':   'callsign_channel_id',
+            'canal-ia':         'ia_channel_id',
         };
 
         if (KEY_MAP[sub]) {

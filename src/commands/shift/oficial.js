@@ -26,6 +26,12 @@ module.exports = {
                         .setRequired(true)
                         .setMaxLength(10)
                 )
+                .addStringOption(opt =>
+                    opt.setName('distintivo')
+                        .setDescription('Número do distintivo/badge do oficial (ex: 4521)')
+                        .setRequired(false)
+                        .setMaxLength(20)
+                )
                 .addUserOption(opt =>
                     opt.setName('usuario')
                         .setDescription('Oficial a definir (somente supervisores/admins) — padrão: você mesmo')
@@ -52,6 +58,7 @@ module.exports = {
         if (sub === 'definir') {
             const district    = interaction.options.getString('distrito').trim().toUpperCase();
             const callsignNum = interaction.options.getString('callsign').trim();
+            const badgeNum    = interaction.options.getString('distintivo')?.trim() ?? null;
             const targetUser  = interaction.options.getUser('usuario') ?? null;
 
             const isSelf = !targetUser || targetUser.id === interaction.user.id;
@@ -72,7 +79,7 @@ module.exports = {
                 subject?.displayName ?? subjectUser.username,
             );
 
-            await officialProfileRepo.upsert(dbUser.id, guildId, district, callsignNum);
+            await officialProfileRepo.upsert(dbUser.id, guildId, district, callsignNum, badgeNum);
 
             // Atualiza o quadro de callsigns em background (silencioso se não configurado)
             callsignBoardService.refresh(interaction.guild).catch(() => {});
@@ -87,7 +94,8 @@ module.exports = {
                 return interaction.editReply({
                     content:
                         `✅ **Perfil atualizado!**\n` +
-                        `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**\n\n` +
+                        `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**` +
+                        (badgeNum ? ` · 🪪 Distintivo: **${badgeNum}**` : '') + '\n\n' +
                         `Seu callsign será montado como: ${preview}\n` +
                         `Use \`/iniciar\` para abrir uma unidade.`,
                 });
@@ -96,7 +104,8 @@ module.exports = {
             return interaction.editReply({
                 content:
                     `✅ Perfil de <@${subjectUser.id}> atualizado.\n` +
-                    `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**`,
+                    `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**` +
+                    (badgeNum ? ` · 🪪 Distintivo: **${badgeNum}**` : ''),
             });
         }
 
@@ -125,9 +134,10 @@ module.exports = {
                 .setTitle(`👮 Perfil Operacional — ${targetUser.displayName ?? targetUser.username}`)
                 .setThumbnail(targetUser.displayAvatarURL())
                 .addFields(
-                    { name: '📍 Distrito',   value: profile.district,     inline: true },
-                    { name: '📟 Callsign',   value: profile.callsign_num, inline: true },
-                    { name: '🕐 Atualizado', value: formatTimestamp(profile.updated_at), inline: true },
+                    { name: '📍 Distrito',    value: profile.district,         inline: true },
+                    { name: '📟 Callsign',    value: profile.callsign_num,     inline: true },
+                    { name: '🪪 Distintivo',  value: profile.badge_num || '—', inline: true },
+                    { name: '🕐 Atualizado',  value: formatTimestamp(profile.updated_at), inline: true },
                 )
                 .setFooter({ text: interaction.guild.name })
                 .setTimestamp();

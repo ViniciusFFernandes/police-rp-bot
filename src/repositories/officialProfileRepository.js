@@ -1,13 +1,14 @@
 const db = require('../database/pool');
 
-async function upsert(userId, guildId, district, callsignNum) {
+async function upsert(userId, guildId, district, callsignNum, badgeNum = null) {
     const { rows } = await db.query(
-        `INSERT INTO official_profiles (user_id, guild_id, district, callsign_num)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO official_profiles (user_id, guild_id, district, callsign_num, badge_num)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (user_id, guild_id) DO UPDATE
-         SET district = EXCLUDED.district, callsign_num = EXCLUDED.callsign_num
+         SET district = EXCLUDED.district, callsign_num = EXCLUDED.callsign_num,
+             badge_num = EXCLUDED.badge_num
          RETURNING *`,
-        [userId, guildId, district.trim().toUpperCase(), callsignNum.trim()]
+        [userId, guildId, district.trim().toUpperCase(), callsignNum.trim(), badgeNum ? badgeNum.trim() : null]
     );
     return rows[0];
 }
