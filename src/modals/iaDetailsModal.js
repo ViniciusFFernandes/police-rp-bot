@@ -37,7 +37,7 @@ module.exports = {
 
         const summaryLines = [
             `**Origem:** ${ORIGIN_LABEL[pending.origin] || pending.origin}`,
-            `**Acusado:** <@${pending.involvedDiscordId}>`,
+            `**Acusado(s):** ${(pending.involvedDiscordIds || []).map(id => `<@${id}>`).join(', ')}`,
             radioVehicle    ? `**Viatura:** ${radioVehicle}` : null,
             datetimeRaw     ? `**Data/Hora:** ${datetimeRaw}` : null,
             incidentLocation ? `**Local:** ${incidentLocation}` : null,

@@ -13,7 +13,7 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
 
         const pending = pendingIA.get(interaction.guildId, interaction.user.id);
-        if (!pending?.origin || !pending?.involvedDiscordId) {
+        if (!pending?.origin || !pending?.involvedDiscordIds?.length) {
             return interaction.editReply({ content: '❌ Sessão expirada. Inicie novamente com `/ia abrir`.' });
         }
 
