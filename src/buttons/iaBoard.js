@@ -314,7 +314,7 @@ module.exports = {
 
             const newEvidence = await collectEvidence({
                 guild:            interaction.guild,
-                provasChannel:    interaction.channel,
+                provasChannelId:  pending.provasChannelId,
                 collectionMsgId:  pending.collectionMsgId,
                 openerId,
                 archiveChannelId,

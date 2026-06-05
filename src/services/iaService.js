@@ -8,6 +8,7 @@ const iaRepo = require('../repositories/iaRepository');
 const guildConfigRepo = require('../repositories/guildConfigRepository');
 const { COLOR } = require('../utils/embeds');
 const { formatTimestamp, formatDateOnly } = require('../utils/time');
+const logger = require('../utils/logger');
 
 const ORIGIN_LABEL = {
     civil:    '🟦 Civil (Pública)',
@@ -220,8 +221,8 @@ async function refreshBoard(guild, inv) {
         const embed = buildBoardEmbed(inv);
         const components = buildBoardButtons(inv);
         await msg.edit({ embeds: [embed], components });
-    } catch {
-        // sem permissão para editar — silencioso
+    } catch (err) {
+        logger.error('Erro ao editar board de investigação', { inv: inv.case_number, error: err.message });
     }
 }
 

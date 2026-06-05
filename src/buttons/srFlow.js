@@ -188,7 +188,7 @@ module.exports = {
             const archiveChannelId = await guildConfigRepo.get(interaction.guildId, 'sr_evidence_channel_id');
             const evidence = await collectEvidence({
                 guild:            interaction.guild,
-                provasChannel:    interaction.channel,
+                provasChannelId:  pending.provasChannelId,
                 collectionMsgId:  pending.collectionMsgId,
                 openerId,
                 archiveChannelId,

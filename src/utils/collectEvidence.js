@@ -4,14 +4,19 @@
  *
  * @param {object} opts
  * @param {import('discord.js').Guild}   opts.guild
- * @param {import('discord.js').Channel} opts.provasChannel  - canal temporário
+ * @param {string}  opts.provasChannelId - ID do canal temporário
  * @param {string}  opts.collectionMsgId - ID da msg "envie suas provas aqui"
  * @param {string}  opts.openerId        - Discord ID do oficial que enviou
  * @param {string|null} opts.archiveChannelId - canal de arquivo permanente
  * @param {string}  opts.label           - ex: "IA-2026-001" para identificar no arquivo
  * @returns {Promise<string|null>}  string de evidências ou null se nada foi enviado
  */
-async function collectEvidence({ guild, provasChannel, collectionMsgId, openerId, archiveChannelId, label }) {
+async function collectEvidence({ guild, provasChannelId, collectionMsgId, openerId, archiveChannelId, label }) {
+    const provasChannel = guild.channels.cache.get(provasChannelId)
+        ?? await guild.channels.fetch(provasChannelId).catch(() => null);
+
+    if (!provasChannel) return null;
+
     // Busca mensagens do usuário após a mensagem inicial do bot
     const rawMessages = collectionMsgId
         ? (await provasChannel.messages.fetch({ after: collectionMsgId, limit: 100 }))
