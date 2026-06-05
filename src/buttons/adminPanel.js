@@ -4,6 +4,8 @@ const {
     TextInputBuilder,
     TextInputStyle,
     UserSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     EmbedBuilder,
 } = require('discord.js');
 const userRepo            = require('../repositories/userRepository');
@@ -16,6 +18,69 @@ const { COLOR } = require('../utils/embeds');
 const logger = require('../utils/logger');
 
 const PAGE_SIZE = 8;
+
+async function renderShiftsPage(interaction, targetId, page) {
+    const target = await interaction.guild.members.fetch(targetId).catch(() => null);
+    const dbUser = await userRepo.findByDiscordId(targetId);
+
+    if (!dbUser) {
+        return interaction.editReply({
+            content: `Nenhum registro encontrado para <@${targetId}> neste servidor.`,
+            components: [],
+        });
+    }
+
+    const offset = (page - 1) * PAGE_SIZE;
+    const [shifts, total] = await Promise.all([
+        shiftRepo.findEndedByUser(dbUser.id, interaction.guildId, PAGE_SIZE, offset),
+        shiftRepo.countEndedByUser(dbUser.id, interaction.guildId),
+    ]);
+
+    if (total === 0) {
+        return interaction.editReply({
+            content: `Nenhum turno encerrado encontrado para <@${targetId}>.`,
+            components: [],
+        });
+    }
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+
+    const lines = shifts.map((s, i) => {
+        const num       = offset + i + 1;
+        const effective = Number(s.total_ms) - Number(s.total_pause_ms_calc);
+        const losses    = s.weapon_serials?.length ? `🔫 ${s.weapon_serials.length} arma(s)` : '🔫 sem armas';
+        return [
+            `**#${num} — ${s.callsign}** · Viatura \`${s.vehicle_prefix}\``,
+            `> 🕐 Início: ${formatTimestamp(s.started_at)}`,
+            `> 🏁 Fim: ${formatTimestamp(s.ended_at)}`,
+            `> ✅ Efetivo: **${formatDuration(effective)}** · ☕ Pausa: ${formatDuration(Number(s.total_pause_ms_calc))} · ⏸️ ${s.pause_count} pausa(s)`,
+            `> ${losses}`,
+        ].join('\n');
+    });
+
+    const embed = new EmbedBuilder()
+        .setColor(COLOR.INFO)
+        .setTitle(`📋 Turnos — ${target?.displayName ?? targetId}`)
+        .setThumbnail(target?.user.displayAvatarURL() ?? null)
+        .setDescription(lines.join('\n\n'))
+        .setFooter({ text: `Página ${page}/${totalPages} · ${total} turno(s) no total · ${interaction.guild.name}` })
+        .setTimestamp();
+
+    const navRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`adminpanel:history_shifts_page:${targetId}:${page - 1}`)
+            .setLabel('◀ Anterior')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page <= 1),
+        new ButtonBuilder()
+            .setCustomId(`adminpanel:history_shifts_page:${targetId}:${page + 1}`)
+            .setLabel('Próxima ▶')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page >= totalPages),
+    );
+
+    return interaction.editReply({ embeds: [embed], components: [navRow] });
+}
 
 function userSelectRow(customId, placeholder) {
     return new ActionRowBuilder().addComponents(
@@ -152,54 +217,20 @@ module.exports = {
                 });
             }
 
-            // ── Histórico de Turnos — passo 2: exibir ────────────────
+            // ── Histórico de Turnos — passo 2: exibir (página 1) ────
             if (action === 'history_shifts_user') {
                 await interaction.deferUpdate();
                 const targetId = interaction.values[0];
-                const target   = await interaction.guild.members.fetch(targetId).catch(() => null);
-                const dbUser   = await userRepo.findByDiscordId(targetId);
+                return renderShiftsPage(interaction, targetId, 1);
+            }
 
-                if (!dbUser) {
-                    return interaction.editReply({
-                        content: `Nenhum registro encontrado para <@${targetId}> neste servidor.`,
-                        components: [],
-                    });
-                }
-
-                const [shifts, total] = await Promise.all([
-                    shiftRepo.findEndedByUser(dbUser.id, interaction.guildId, PAGE_SIZE, 0),
-                    shiftRepo.countEndedByUser(dbUser.id, interaction.guildId),
-                ]);
-
-                if (total === 0) {
-                    return interaction.editReply({
-                        content: `Nenhum turno encerrado encontrado para <@${targetId}>.`,
-                        components: [],
-                    });
-                }
-
-                const totalPages = Math.ceil(total / PAGE_SIZE);
-                const lines = shifts.map((s, i) => {
-                    const effective = Number(s.total_ms) - Number(s.total_pause_ms_calc);
-                    const losses    = s.weapon_serials?.length ? `🔫 ${s.weapon_serials.length} arma(s)` : '🔫 sem armas';
-                    return [
-                        `**#${i + 1} — ${s.callsign}** · Viatura \`${s.vehicle_prefix}\``,
-                        `> 🕐 Início: ${formatTimestamp(s.started_at)}`,
-                        `> 🏁 Fim: ${formatTimestamp(s.ended_at)}`,
-                        `> ✅ Efetivo: **${formatDuration(effective)}** · ☕ Pausa: ${formatDuration(Number(s.total_pause_ms_calc))} · ⏸️ ${s.pause_count} pausa(s)`,
-                        `> ${losses}`,
-                    ].join('\n');
-                });
-
-                const embed = new EmbedBuilder()
-                    .setColor(COLOR.INFO)
-                    .setTitle(`📋 Turnos — ${target?.displayName ?? targetId}`)
-                    .setThumbnail(target?.user.displayAvatarURL() ?? null)
-                    .setDescription(lines.join('\n\n'))
-                    .setFooter({ text: `Página 1/${totalPages} · ${total} turno(s) no total · ${interaction.guild.name}` })
-                    .setTimestamp();
-
-                return interaction.editReply({ embeds: [embed], components: [] });
+            // ── Histórico de Turnos — navegação de página ─────────────
+            // customId: adminpanel:history_shifts_page:{targetId}:{page}
+            if (action === 'history_shifts_page') {
+                await interaction.deferUpdate();
+                const targetId = parts[2];
+                const page     = parseInt(parts[3], 10);
+                return renderShiftsPage(interaction, targetId, page);
             }
 
             // ── Arsenal — passo 1: selecionar oficial ─────────────────
