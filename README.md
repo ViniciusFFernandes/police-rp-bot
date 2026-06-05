@@ -23,11 +23,11 @@ Suporta **múltiplos servidores simultaneamente** — cada servidor possui confi
 13. [Deploy no Render](#deploy-no-render)
 14. [Estrutura de pastas](#estrutura-de-pastas)
 15. [Funcionalidades](#funcionalidades)
-16. [Assuntos Internos (IA)](#assuntos-internos-ia)
-17. [Controle de permissões](#controle-de-permissões)
-18. [Banco de dados](#banco-de-dados)
-19. [Solução de problemas](#solução-de-problemas)
-20. [Roadmap](#roadmap)
+16. [Painéis de Botões](#painéis-de-botões)
+17. [Assuntos Internos (IA)](#assuntos-internos-ia)
+18. [Controle de permissões](#controle-de-permissões)
+19. [Banco de dados](#banco-de-dados)
+20. [Solução de problemas](#solução-de-problemas)
 
 ---
 
@@ -41,7 +41,7 @@ O **Police RP Bot** é um sistema completo para gerenciar as operações de um d
 |---|---|
 | Turno individual registrado por oficial | Unidade Operacional com líder + membros (`3-A-12`, `1-L-20`) |
 | Digitar distrito e callsign a cada turno | Perfil do oficial salvo — `/iniciar` carrega automaticamente |
-| Canal de voz criado manualmente | Canal criado como `Viatura-Callsign` (ex: `Ford Explorer-3-A-12`) |
+| Canal de voz criado manualmente | Canal criado como `Viatura-Callsign` — sem permissão de falar por padrão |
 | Digitar seriais de arma a cada turno | Arsenal de toda a equipe carregado automaticamente |
 | Escolher viatura manualmente | Seleção a partir do cadastro de viaturas do servidor |
 | Unidades digitadas livremente | Cadastro de unidades operacionais (`A`, `L`, `K`, `RPM`...) |
@@ -51,9 +51,11 @@ O **Police RP Bot** é um sistema completo para gerenciar as operações de um d
 | Reabrir turno manualmente após mudança de equipe | Fluxo de **Remodulação** com nova unidade imediata |
 | Histórico apenas de quem liderou | `/historico` contabiliza participações como líder e como membro |
 | Investigações internas no chat | Sistema completo de IA com fluxo guiado, quadro persistente e status |
+| Provas de investigação enviadas como links | Canal temporário criado para upload de arquivos/imagens |
 | Configuração restrita ao admin do Discord | Cargos gestores de configuração configuráveis pelo admin |
 | Configuração via arquivo `.env` | Tudo configurável via comandos slash, por servidor |
 | Canal de turnos poluído | Mensagens de usuários deletadas automaticamente em 10s |
+| Comandos difíceis de lembrar | Painéis de botões para ações mais comuns (operacional, admin, IA) |
 
 ### Arquitetura multi-guild
 
@@ -141,15 +143,15 @@ LOG_LEVEL=info
 
 | Permissão | Motivo |
 |---|---|
-| `Manage Channels` | Criar e excluir canais de voz de turno |
+| `Manage Channels` | Criar e excluir canais de voz de turno e canais temporários de provas |
 | `Send Messages` | Postar embeds e relatórios |
 | `Embed Links` | Enviar embeds formatadas |
-| `Read Message History` | Editar embeds de turno e o quadro de callsigns |
+| `Read Message History` | Editar embeds de turno, quadro de callsigns e coletar provas |
 | `Manage Messages` | Deletar mensagens de usuários no canal de turnos |
 | `View Channel` | Ver os canais configurados |
 | `Connect` | Permissão base nos canais de voz |
-
-**Permissão numérica equivalente:** `17600776085504`
+| `Attach Files` | Reenviar arquivos de provas para o canal de arquivo |
+| `Manage Roles` / `Manage Permissions` | Definir permissões nos canais temporários de provas |
 
 ---
 
@@ -233,7 +235,7 @@ A configuração é feita inteiramente por **comandos slash**. Por padrão, apen
 /configurar cargo-supervisor @Comandante Adicionar
 ```
 
-Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, registrar extravios de qualquer arma e editar perfis de outros oficiais.
+Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, registrar extravios de qualquer arma e definir perfis de outros oficiais.
 
 ### Passo 3 — Cargos gestores de configuração (opcional)
 
@@ -252,8 +254,6 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 /unidade registrar RPM
 ```
 
-Com unidades cadastradas, o oficial as seleciona ao iniciar o turno. Sem unidades cadastradas, os botões de confirmação ficam desabilitados.
-
 ### Passo 5 — Viaturas (opcional)
 
 ```
@@ -262,16 +262,14 @@ Com unidades cadastradas, o oficial as seleciona ao iniciar o turno. Sem unidade
 /veiculo registrar Tesla Model Y
 ```
 
-Com viaturas cadastradas, o oficial escolhe a viatura ao iniciar o turno e o canal de voz é criado como `Ford Explorer-3-A-12`.
-
 ### Passo 6 — Canal e cargos de Assuntos Internos (opcional)
 
 ```
-/configurar canal-ia #assuntos-internos
+/configurar canal-ia          #assuntos-internos
+/configurar categoria-ia      Assuntos Internos     ← categoria para canais de provas
+/configurar canal-provas-ia   #provas-ia            ← arquivo permanente de provas
 /configurar cargo-ia @Assuntos Internos Adicionar
 ```
-
-Membros com o cargo de IA podem abrir e gerenciar investigações internas junto com Supervisores e Administradores.
 
 ### Passo 7 — Canal de callsigns (opcional)
 
@@ -279,15 +277,19 @@ Membros com o cargo de IA podem abrir e gerenciar investigações internas junto
 /configurar canal-callsign #callsigns
 ```
 
-O bot publica imediatamente um **quadro de callsigns** no canal e o mantém atualizado automaticamente sempre que um perfil for definido ou editado.
+### Passo 8 — Painéis de botões (opcional)
 
-### Passo 8 — Verificar configuração
+```
+/configurar canal-painel       #painel-operacional   ← painel para todos os oficiais
+/configurar canal-painel-admin #painel-admin         ← painel exclusivo para supervisores
+/configurar canal-painel-ia    #painel-ia            ← painel exclusivo para equipe de IA
+```
+
+### Passo 9 — Verificar configuração
 
 ```
 /configuracoes
 ```
-
-Exibe uma embed com o status de todos os itens configurados.
 
 ### Referência — comandos de configuração
 
@@ -299,7 +301,13 @@ Exibe uma embed com o status de todos os itens configurados.
 | `/configurar categoria-voz` | Categoria dos canais de voz automáticos |
 | `/configurar canal-callsign` | Canal do quadro de callsigns automático |
 | `/configurar canal-ia` | Canal dos quadros de investigações de Assuntos Internos |
+| `/configurar categoria-ia` | Categoria para canais temporários de coleta de provas |
+| `/configurar canal-provas-ia` | Canal de arquivo permanente de provas de investigações |
+| `/configurar canal-painel` | Canal do painel operacional (todos os oficiais) |
+| `/configurar canal-painel-admin` | Canal do painel administrativo (supervisores) |
+| `/configurar canal-painel-ia` | Canal do painel de Assuntos Internos |
 | `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
+| `/configurar cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
 | `/configurar cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
 | `/configurar cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
 | `/configuracoes` | Exibe status de todas as configurações |
@@ -363,6 +371,7 @@ pm2 logs police-bot
 git pull
 npm install --production
 npm run db:migrate
+npm run deploy   # sempre que novos comandos slash forem adicionados
 pm2 restart police-bot
 ```
 
@@ -426,15 +435,16 @@ police-rp-bot/
 ├── src/
 │   ├── commands/
 │   │   ├── admin/
-│   │   │   ├── configurar.js        # /configurar (10 subcomandos, incluindo canal-ia e cargo-ia)
+│   │   │   ├── configurar.js        # /configurar (todos os subcomandos de config)
 │   │   │   ├── configuracoes.js     # /configuracoes
 │   │   │   ├── veiculo.js           # /veiculo registrar|listar|remover
 │   │   │   └── unidade.js           # /unidade registrar|listar|remover
 │   │   ├── shift/
 │   │   │   ├── iniciar.js           # /iniciar → carrega perfil e abre composição
-│   │   │   └── oficial.js           # /oficial definir|ver (com distintivo)
+│   │   │   ├── oficial.js           # /oficial definir|ver (supervisor/admin only para definir)
+│   │   │   └── turno.js             # /turno listar|forcar-encerrar
 │   │   ├── ia/
-│   │   │   └── investigacao.js      # /ia abrir|listar
+│   │   │   └── investigacao.js      # /ia abrir|listar|ver|deletar
 │   │   ├── history/
 │   │   │   └── historico.js         # /historico resumo|turnos|arsenal
 │   │   └── weapon/
@@ -450,21 +460,33 @@ police-rp-bot/
 │   │   ├── shiftButtons.js          # Pausar, Retornar, Arma Perdida, Adicionar Arma, Encerrar
 │   │   ├── shiftCompose.js          # Seleção de unidade/viatura/membros + confirmação
 │   │   ├── shiftEnd.js              # Motivo de encerramento + fluxo de remodulação
-│   │   ├── iaFlow.js                # Seleção de origem/oficial + abertura dos modais de IA
+│   │   ├── panel.js                 # Painel operacional — ações para todos os oficiais
+│   │   ├── adminPanel.js            # Painel administrativo — ações para supervisores
+│   │   ├── iaPanel.js               # Painel de IA — ações para equipe de Assuntos Internos
+│   │   ├── iaFlow.js                # Fluxo de abertura de investigação (etapas + provas)
 │   │   └── iaBoard.js               # Botões do quadro: alterar status, encerrar, penalidade
 │   │
 │   ├── modals/
-│   │   ├── endReasonModal.js        # Encerramento com motivo "Outro" (texto livre)
-│   │   ├── weaponLossModal.js       # Extravio durante turno
-│   │   ├── addWeaponModal.js        # Adição de arma ao turno
-│   │   ├── iaDetailsModal.js        # Detalhes do incidente (etapa 2 do fluxo de IA)
-│   │   ├── iaDescriptionModal.js    # Descrição + provas; cria a investigação (etapa 3)
-│   │   └── iaCloseModal.js          # Veredicto + penalidade ao encerrar investigação
+│   │   ├── endReasonModal.js              # Encerramento com motivo "Outro" (texto livre)
+│   │   ├── weaponLossModal.js             # Extravio durante turno
+│   │   ├── addWeaponModal.js              # Adição de arma ao turno
+│   │   ├── panelWeaponRegister.js         # Registrar arma pelo painel operacional
+│   │   ├── panelWeaponLoss.js             # Extravio pelo painel (supervisores)
+│   │   ├── panelWeaponLossOfficer.js      # Extravio pelo painel (oficial comum, com observação)
+│   │   ├── adminPanelProfileDefine.js     # Definir perfil de oficial pelo painel admin
+│   │   ├── iaDetailsModal.js              # Detalhes do incidente (etapa 2 do fluxo de IA)
+│   │   ├── iaDescriptionModal.js          # Descrição do ocorrido (etapa 3); inicia etapa de provas
+│   │   ├── iaCloseModal.js                # Veredicto + penalidade ao encerrar investigação
+│   │   ├── iaPanelView.js                 # Ver investigação pelo painel de IA
+│   │   └── iaPanelDelete.js               # Deletar investigação pelo painel de IA
 │   │
 │   ├── services/
 │   │   ├── shiftService.js          # Lógica de turno (start/pause/resume/end/loss/addWeapon)
 │   │   ├── callsignBoardService.js  # Cria/edita a mensagem do quadro de callsigns
-│   │   ├── iaService.js             # Embed do quadro de investigação + publicação/atualização
+│   │   ├── panelService.js          # Painel operacional — publicação/atualização
+│   │   ├── adminPanelService.js     # Painel administrativo — publicação/atualização
+│   │   ├── iaPanelService.js        # Painel de IA — publicação/atualização
+│   │   ├── iaService.js             # Embed do quadro de investigação + publicação
 │   │   └── guildConfigService.js    # Lógica de configuração por servidor
 │   │
 │   ├── repositories/
@@ -475,8 +497,8 @@ police-rp-bot/
 │   │   ├── weaponRepository.js
 │   │   ├── weaponLossRepository.js
 │   │   ├── officialWeaponRepository.js
-│   │   ├── officialProfileRepository.js  # Perfil operacional (distrito + callsign + distintivo)
-│   │   ├── iaRepository.js               # CRUD das investigações internas
+│   │   ├── officialProfileRepository.js
+│   │   ├── iaRepository.js
 │   │   ├── vehicleRepository.js
 │   │   ├── unitRepository.js
 │   │   └── guildConfigRepository.js
@@ -487,35 +509,36 @@ police-rp-bot/
 │   ├── handlers/
 │   │   ├── commandHandler.js
 │   │   ├── buttonHandler.js         # Roteia botões e select menus por prefixo de customId
-│   │   └── modalHandler.js          # Roteia modals (exact match + prefix matcher)
+│   │   └── modalHandler.js          # Roteia modals (exact match + dynamic matcher)
 │   │
 │   ├── utils/
 │   │   ├── logger.js
 │   │   ├── embeds.js
 │   │   ├── time.js
-│   │   ├── permissions.js           # isSupervisor, isAdmin, isConfigManager, canManageShift
+│   │   ├── permissions.js
 │   │   ├── configGuard.js
-│   │   ├── pendingComposition.js    # Store temporário entre interações de composição
+│   │   ├── pendingComposition.js
 │   │   ├── pendingIA.js             # Store temporário do fluxo multi-etapa de IA (TTL 15min)
-│   │   ├── openCompositionScreen.js # Abre tela de montagem da unidade (reutilizado)
+│   │   ├── openCompositionScreen.js
 │   │   └── guildWhitelist.js
 │   │
 │   └── index.js
 │
 ├── database/
-│   ├── migrations/
-│   │   ├── 001_initial_schema.sql       # users, shifts, weapons, pauses, weapon_losses
-│   │   ├── 002_guild_config.sql         # guild_config
-│   │   ├── 003_add_guild_id.sql         # guild_id em shifts e weapons
-│   │   ├── 004_weapons_guild_unique.sql # Constraint serial+guild
-│   │   ├── 005_official_weapons.sql     # Arsenal pessoal por oficial
-│   │   ├── 006_bot_config.sql           # bot_config
-│   │   ├── 007_shift_members.sql        # shift_members + end_reason em shifts
-│   │   ├── 008_vehicles.sql             # vehicles + vehicle_name em shifts
-│   │   ├── 009_units.sql                # Unidades operacionais por servidor
-│   │   ├── 010_config_manager_roles.sql # config_manager_role_ids em guild_config
-│   │   └── 011_official_profiles.sql    # Perfil operacional do oficial
-│   └── migrate.js
+│   └── migrations/
+│       ├── 001_initial_schema.sql
+│       ├── 002_guild_config.sql
+│       ├── 003_add_guild_id.sql
+│       ├── 004_weapons_guild_unique.sql
+│       ├── 005_official_weapons.sql
+│       ├── 006_bot_config.sql
+│       ├── 007_shift_members.sql
+│       ├── 008_vehicles.sql
+│       ├── 009_units.sql
+│       ├── 010_config_manager_roles.sql
+│       ├── 011_official_profiles.sql
+│       ├── 012_add_badge_to_profiles.sql
+│       └── 013_ia_investigations.sql
 │
 ├── scripts/
 │   ├── deploy-commands.js
@@ -534,282 +557,228 @@ police-rp-bot/
 
 ### Perfil operacional do oficial
 
-Antes de usar `/iniciar` pela primeira vez, cada oficial deve configurar seu perfil com distrito e callsign. Isso elimina a necessidade de digitar essas informações a cada turno.
+Antes de usar `/iniciar`, cada oficial precisa ter um perfil configurado por um supervisor.
 
-#### `/oficial definir <distrito> <callsign> [distintivo] [@usuario]`
+#### `/oficial definir` — restrito a supervisores e administradores
 
-Define o distrito, callsign e distintivo (badge) do oficial neste servidor.
-
-- **Sem `@usuario`:** define o próprio perfil.
-- **Com `@usuario`:** define o perfil de outro oficial — restrito a supervisores e administradores.
-- **`distintivo`** é opcional mas necessário para que investigações de IA preencham o campo automaticamente.
+Define o distrito, callsign, distintivo e nome do oficial. Pode ser feito via comando ou pelo **Painel Administrativo**.
 
 ```
-/oficial definir distrito:3 callsign:12 distintivo:4521
-/oficial definir distrito:1 callsign:07 usuario:@João
+/oficial definir distrito:3 callsign:12 distintivo:4521 nome:João usuario:@João
 ```
 
 #### `/oficial ver [@usuario]`
 
-Exibe o perfil operacional. Ver perfil de outros é restrito a supervisores e administradores.
+Exibe o perfil operacional. Ver o próprio perfil é livre; ver perfil alheio requer supervisor ou admin.
 
 ---
 
 ### Quadro de Callsigns
 
-Quando o canal de callsigns está configurado (`/configurar canal-callsign`), o bot mantém uma **mensagem única e persistente** nesse canal com todos os oficiais agrupados por distrito.
+Quando o canal de callsigns está configurado, o bot mantém uma **mensagem única e persistente** com todos os oficiais agrupados por distrito. Cada linha exibe distintivo (4 dígitos com zero à esquerda), callsign (3 dígitos) e nome do oficial.
 
-Cada distrito é exibido em um bloco de código com colunas alinhadas de **Distintivo**, **Callsign** e **Nome**:
-
-```
-📋 Quadro de Callsigns Operacionais
-
-🗺️ Distrito 1
-┌────────────────────────────────┐
-DISTINT CSN   OFICIAL
-#0721   007   João Silva
-———     020   Carlos
-└────────────────────────────────┘
-
-🗺️ Distrito 3
-┌────────────────────────────────┐
-DISTINT CSN   OFICIAL
-#4521   012   Vinicius
-#1234   053   Pedro
-└────────────────────────────────┘
-```
-
-A mensagem é editada automaticamente sempre que um perfil é criado ou alterado. Oficiais sem distintivo cadastrado aparecem com `———`. Se a mensagem for deletada manualmente, é recriada na próxima atualização.
+Distritos com mais de 25 oficiais são divididos automaticamente em múltiplos campos (`Distrito 3 · 1/2`, `Distrito 3 · 2/2`) para respeitar os limites do Discord.
 
 ---
 
 ### Iniciar turno — `/iniciar`
 
-Com o perfil configurado, `/iniciar` carrega distrito e callsign automaticamente e abre a **tela de montagem da unidade**:
+Com o perfil configurado, `/iniciar` abre a **tela de montagem da unidade**:
 
-| Seletor | Quando aparece | Obrigatoriedade |
-|---|---|---|
-| **Unidade** (`A`, `L`, `K`...) | Sempre que houver unidades cadastradas | Obrigatório — botões desabilitados até selecionar |
-| **Viatura** | Quando houver viaturas cadastradas | Opcional |
-| **Oficiais adicionais** | Sempre | Opcional (até 5) |
-
-Botões: **Iniciar Turno** (com os adicionais selecionados) ou **Apenas eu** (unidade individual).
+| Seletor | Obrigatoriedade |
+|---|---|
+| **Unidade** (`A`, `L`, `K`...) | Obrigatório |
+| **Viatura** | Opcional |
+| **Oficiais adicionais** | Opcional (até 5) |
 
 O callsign final é montado como `Distrito-Unidade-Callsign` (ex: `3-A-12`).
 
 **Ao confirmar, o bot:**
-- Cria **um único turno** para toda a unidade, registrando cada participante (`LEADER` / `MEMBER`).
-- Cria **um único canal de voz** nomeado como `Viatura-Callsign` (ex: `Ford Explorer-3-A-12`). Sem viatura, usa só o callsign.
-- **Vincula automaticamente** as armas ativas do arsenal de **todos os participantes**.
-
-> **Composição fixa:** a equipe é definida no início. Para alterar (entrada/saída de membro, troca de motorista), encerre com motivo **Remodulação** e inicie nova unidade.
+- Cria um único turno para toda a unidade
+- Cria um canal de voz nomeado como `Viatura-Callsign` — **sem permissão de falar por padrão** (o responsável libera conforme necessário)
+- Vincula automaticamente as armas ativas do arsenal de todos os participantes
 
 ---
 
 ### Botões da embed de turno
 
-**Grupo 1 — Controle de turno**
-
 | Botão | Ação |
 |---|---|
 | **Pausar** | Registra pausa; embed fica amarela |
 | **Retornar ao Serviço** | Encerra a pausa; embed fica verde |
-| **Arma Perdida** | Abre modal (série + observação); aplica regras de permissão; envia relatório |
-| **Encerrar Turno** | Exibe seleção de motivo; calcula tempos; envia relatório; exclui canal de voz |
-
-**Grupo 2 — Gestão de armamento**
-
-| Botão | Ação |
-|---|---|
+| **Arma Perdida** | Abre modal (série + observação); envia relatório |
 | **Adicionar Arma** | Abre modal (nome + série); registra no arsenal e no turno |
+| **Encerrar Turno** | Exibe seleção de motivo; gera relatório; exclui canal de voz |
 
-#### Encerramento e motivo
+#### Motivos de encerramento
 
 | Motivo | Comportamento |
 |---|---|
-| **Fim de Patrulha** | Gera relatório, encerra canal de voz, desativa embed |
-| **Remodulação** | Gera relatório, encerra canal de voz, oferece iniciar nova unidade imediatamente |
-| **Outro** | Abre campo de texto opcional para motivo personalizado antes de encerrar |
-
-O motivo é salvo no banco e exibido no relatório.
-
----
-
-### Canal de turnos — limpeza automática
-
-- Qualquer mensagem enviada por usuários no canal de turnos é **deletada após 10 segundos**.
-- Apenas as embeds do bot permanecem visíveis.
+| **Fim de Patrulha** | Gera relatório, encerra canal de voz |
+| **Remodulação** | Gera relatório, encerra canal de voz, oferece iniciar nova unidade |
+| **Outro** | Campo de texto opcional antes de encerrar |
 
 ---
 
 ### Armamentos
 
 #### `/arma registrar <nome> <serie>`
-Cadastra uma arma no arsenal pessoal do oficial. Será carregada automaticamente nos próximos turnos.
+Cadastra uma arma no arsenal pessoal. Será carregada automaticamente nos próximos turnos.
 
 #### `/arma arsenal`
-Lista as armas ativas do arsenal (disponíveis e em uso). Extraviadas são visíveis apenas para supervisores via `/historico arsenal`.
+Lista as armas ativas do arsenal.
 
 #### `/arma extravio <serie> [observacao]`
 Registra extravio fora de um turno ativo. Dentro de um turno, usa o botão **Arma Perdida** na embed.
 
 #### `/arma consultar <serie>`
-Status atual, último oficial, último callsign e histórico completo de extravios.
+Status atual, último oficial, último callsign e histórico de extravios.
 
 ---
 
 ### Histórico (supervisores e admins)
 
 #### `/historico resumo @usuario`
-Total de turnos, tempo efetivo, tempo em pausa, pausas e extravios. Contabiliza **todas as participações** — como líder e como membro adicional.
+Total de turnos, tempo efetivo, pausas e extravios.
 
 #### `/historico turnos @usuario [pagina]`
-Lista paginada (8 por página) dos turnos encerrados em que o oficial participou.
+Lista paginada (8 por página) dos turnos encerrados.
 
 #### `/historico arsenal @usuario`
-Arsenal completo incluindo armas extraviadas, histórico de uso e extravios.
+Arsenal completo incluindo armas extraviadas e histórico de uso.
+
+---
+
+### Turnos ativos (supervisores e admins)
+
+#### `/turno listar`
+Lista todos os turnos ativos no servidor com status (🟢 ativo / 🟡 pausado), callsign, oficial e horário de início.
+
+#### `/turno forcar-encerrar [@usuario]`
+Encerra forçadamente um turno preso (sem embed ou com erro). Libera as armas e exclui o canal de voz órfão.
 
 ---
 
 ### Comandos administrativos
 
-#### Configuração do servidor
-
-| Comando | Opção | Descrição |
-|---|---|---|
-| `/configurar` | `canal-turnos` | Canal das embeds de turno |
-| `/configurar` | `canal-relatorios` | Canal de relatórios de encerramento |
-| `/configurar` | `canal-armamento` | Canal de notificações de armamento |
-| `/configurar` | `categoria-voz` | Categoria dos canais de voz automáticos |
-| `/configurar` | `canal-callsign` | Canal do quadro de callsigns automático |
-| `/configurar` | `canal-ia` | Canal dos quadros de investigações internas |
-| `/configurar` | `cargo-supervisor` | Gerencia cargos supervisores |
-| `/configurar` | `cargo-ia` | Gerencia cargos de Assuntos Internos |
-| `/configurar` | `cargo-gestor` | Gerencia cargos gestores de configuração (somente Admins) |
-| `/configuracoes` | — | Exibe status de todas as configurações |
-
-#### Unidades operacionais
-
 | Comando | Descrição |
 |---|---|
-| `/unidade registrar <nome>` | Cadastra uma unidade (ex: `A`, `L`, `K`, `RPM`, `AIR`) |
-| `/unidade listar` | Exibe todas as unidades ativas e desativadas |
-| `/unidade remover <nome>` | Desativa a unidade |
+| `/unidade registrar|listar|remover` | Gerencia unidades operacionais (máx. 25) |
+| `/veiculo registrar|listar|remover` | Gerencia viaturas (máx. 25) |
+| `/configurar` | Todos os canais, categorias e cargos do servidor |
+| `/configuracoes` | Exibe status de todas as configurações |
 
-> Limite de **25 unidades ativas** por servidor.
+---
 
-#### Viaturas
+## Painéis de Botões
 
-| Comando | Descrição |
+Os painéis são mensagens fixas em canais dedicados com botões que substituem comandos slash para as ações mais comuns. Todas as respostas dos painéis são **efêmeras** (visíveis apenas para quem clicou).
+
+### Painel Operacional — `/configurar canal-painel`
+
+Disponível para todos os oficiais com acesso ao bot.
+
+| Botão | Ação |
 |---|---|
-| `/veiculo registrar <nome>` | Cadastra uma viatura (ex: `Ford Explorer`, `Tesla Model Y`) |
-| `/veiculo listar` | Exibe todas as viaturas ativas e desativadas |
-| `/veiculo remover <nome>` | Desativa a viatura |
+| 🔫 **Registrar Arma** | Modal com nome e número de série |
+| 🗄️ **Ver Arsenal** | Exibe suas armas ativas |
+| 🚨 **Extravio de Arma** | **Supervisor/admin:** modal com série + observação (pode extraviar qualquer arma). **Oficial comum:** select menu com suas armas ativas → modal de observação |
+| 👮 **Ver Perfil** | Exibe seu perfil operacional (distrito, callsign, distintivo) |
 
-> Limite de **25 viaturas ativas** por servidor. O canal de voz é criado como `Viatura-Callsign`.
+---
+
+### Painel Administrativo — `/configurar canal-painel-admin`
+
+Exclusivo para supervisores e administradores.
+
+| Botão | Ação |
+|---|---|
+| 🪪 **Definir Perfil** | Seleciona o oficial → modal pré-preenchido com os dados atuais |
+| 📊 **Resumo** | Seleciona o oficial → estatísticas de turnos e armamentos |
+| 📋 **Histórico de Turnos** | Seleciona o oficial → lista paginada dos últimos turnos (◀ Anterior / Próxima ▶) |
+| 🗄️ **Arsenal** | Seleciona o oficial → arsenal completo com histórico de extravios |
+| 🚔 **Turnos em Andamento** | Lista todos os turnos ativos no servidor |
+
+---
+
+### Painel de Assuntos Internos — `/configurar canal-painel-ia`
+
+Exclusivo para a equipe de Assuntos Internos (admins, supervisores e cargo de IA).
+
+| Botão | Ação |
+|---|---|
+| 📂 **Abrir Investigação** | Inicia o fluxo completo de abertura (mesmas etapas do `/ia abrir`) |
+| 📋 **Listar** | Select de oficial para filtrar, ou botão "Listar Todas" |
+| 🔎 **Ver Investigação** | Modal com número do caso → exibe embed da investigação |
+| 🗑️ **Deletar** | Modal com número do caso (restrito a supervisores/admins) |
 
 ---
 
 ## Assuntos Internos (IA)
 
-O módulo de Assuntos Internos permite abrir, acompanhar e encerrar **investigações internas** diretamente pelo Discord, com fluxo guiado por modais e um quadro persistente por investigação.
-
-### Configurar o canal e os cargos de IA
+### Configuração
 
 ```
-/configurar canal-ia #assuntos-internos
+/configurar canal-ia          #assuntos-internos     ← quadros de investigação
+/configurar categoria-ia      Assuntos Internos      ← canais temporários de provas
+/configurar canal-provas-ia   #provas-ia             ← arquivo permanente de provas
 /configurar cargo-ia @Assuntos Internos Adicionar
 ```
 
-Todos os quadros de investigação serão publicados nesse canal. Apenas **Administradores**, **Supervisores** e membros com o **cargo de Assuntos Internos** podem abrir e gerenciar investigações.
-
-### Abrir uma investigação — `/ia abrir`
-
-Restrito a **Supervisores** e **Administradores**. O fluxo tem 3 etapas:
+### Abrir uma investigação — `/ia abrir` ou Painel de IA
 
 **Etapa 1 — Identificação**
-- Selecione a **origem** da investigação:
-  - 🟦 **Civil (Pública)** — denúncia feita por civil externo
-  - 🟥 **Interna (Blue-on-Blue)** — denúncia feita por outro policial
-  - ⬛ **Uso de Força Crítico (OIS)** — Officer-Involved Shooting
-- Selecione o **oficial acusado/envolvido** (UserSelect)
-- Clique em **Continuar →**
+- Origem: 🟦 Civil | 🟥 Interna (Blue-on-Blue) | ⬛ OIS
+- Oficial acusado/envolvido (UserSelect)
 
 **Etapa 2 — Detalhes do Incidente** (modal)
-| Campo | Obrigatório | Descrição |
-|---|:---:|---|
-| Viatura no dia | Não | Viatura do indicativo de rádio (ex: Eagle-01) |
-| Data e Hora do Fato | Não | Formato DD/MM/AAAA HH:MM |
-| Local do Incidente | Não | Endereço ou ponto de referência |
-| Classificação / Motivo | **Sim** | Tipo de infração (ex: Uso excessivo de força) |
-| Identificação do Reclamante | Não | Nome, documento ou @Discord |
 
-**Etapa 3 — Descrição e Provas** (modal)
-| Campo | Obrigatório | Descrição |
-|---|:---:|---|
-| Descrição do Ocorrido | **Sim** | Relato detalhado do fato |
-| Provas / Evidências | Não | Links de fotos/vídeos ou descrição das provas |
+| Campo | Obrigatório |
+|---|:---:|
+| Viatura no dia | Não |
+| Data e Hora (DD/MM/AAAA HH:MM) | Não |
+| Local do Incidente | Não |
+| Classificação / Motivo | **Sim** |
+| Identificação do Reclamante | Não |
 
-Ao confirmar, a investigação é criada com número sequencial (`IA-2026-001`) e o quadro é publicado automaticamente no canal configurado.
+**Etapa 3 — Descrição**
 
-> O callsign, distintivo e distrito do acusado são preenchidos automaticamente a partir do perfil do oficial (cadastrado via `/oficial definir`).
+Modal com o relato detalhado do ocorrido.
 
----
+**Etapa 4 — Provas**
+
+Após a descrição, o oficial escolhe:
+- **Pular** → investigação criada sem provas
+- **Adicionar Provas** → o bot cria automaticamente um canal temporário `provas-ia-2026-001` na categoria de IA, visível apenas para o cargo de IA e o oficial que abriu. O oficial envia quantas mensagens quiser com imagens, vídeos, arquivos ou links. Ao clicar **✅ Confirmar Provas**, o bot:
+  1. Coleta todos os arquivos e textos enviados
+  2. **Rehospeda os arquivos no canal de arquivo de provas** (`canal-provas-ia`) para garantir URLs permanentes
+  3. Cria a investigação com os links persistentes
+  4. **Deleta o canal temporário**
+
+> Os arquivos ficam permanentemente arquivados no canal de provas mesmo após o canal temporário ser excluído.
 
 ### Quadro da investigação
 
-Cada investigação gera uma **embed persistente** no canal de IA com:
+Cada investigação gera uma embed persistente no canal de IA com todos os dados e botões de gerenciamento:
 
-- Número do caso, origem, status e data de abertura
-- Responsável pela abertura da investigação
-- Acusado/envolvido com callsign, distintivo e distrito
-- Indicativo de rádio no dia do incidente (`Distrito-Viatura-Callsign`)
-- Data/hora, local e classificação do incidente
-- Identificação do reclamante (se informada)
-- Descrição do ocorrido
-- Provas e evidências
-
-#### Status da investigação
-
-O quadro exibe dois botões para alterar o status enquanto estiver aberta. O botão do status atual fica desabilitado para indicar o estado vigente:
-
-| Botão | Status resultante |
+#### Status
+| Botão | Estado resultante |
 |---|---|
-| 🟢 Ativar | Investigação em andamento |
-| 🟡 Suspender | Temporariamente suspensa |
+| 🟢 Ativar | Em andamento |
+| 🟡 Suspender | Suspensa temporariamente |
 
-#### Encerrar a investigação
+#### Encerramento
+1. Select de **veredicto**: Sustentado / Não Sustentado / Exonerado / Infundado
+2. Modal de **penalidade** (opcional)
+3. Após encerrar, botões para marcar aplicação: ✅ Aplicada / ❌ Não Aplicada / 🔶 Com Modificações
 
-Clique em **🔴 Encerrar Investigação**. O fluxo tem duas etapas:
+### Outros comandos de IA
 
-**Etapa 1 — Veredicto** (select em português)
-
-| Opção | Descrição |
+| Comando | Descrição |
 |---|---|
-| ✅ Sustentado | A infração foi provada e as evidências sustentam a acusação |
-| ⚠️ Não Sustentado | Não há provas suficientes para provar ou refutar |
-| 🔵 Exonerado | O fato ocorreu, mas a ação foi legal e dentro do protocolo |
-| ❌ Infundado | O fato alegado não ocorreu ou é comprovadamente falso |
-
-Selecione o veredicto e clique em **Confirmar →**.
-
-**Etapa 2 — Penalidade** (modal)
-
-Campo de texto para informar a recomendação de penalidade (opcional): suspensão, demissão, advertência, etc.
-
-#### Status da penalidade
-
-Após encerrar, o quadro exibe três botões para marcar a aplicação da penalidade:
-
-| Botão | Significado |
-|---|---|
-| ✅ Penalidade Aplicada | Penalidade aplicada conforme recomendado |
-| ❌ Não Aplicada | Penalidade não foi aplicada |
-| 🔶 Aplicada com Modificações | Penalidade aplicada com alterações |
-
-### Listar investigações — `/ia listar`
-
-Exibe todas as investigações do servidor com status e oficial envolvido.
+| `/ia listar [@usuario]` | Lista investigações, com filtro opcional por oficial envolvido |
+| `/ia ver <numero>` | Exibe detalhes de uma investigação pelo número do caso |
+| `/ia deletar <numero>` | Deleta permanentemente (supervisores/admins) |
 
 ---
 
@@ -817,8 +786,7 @@ Exibe todas as investigações do servidor com status e oficial envolvido.
 
 | Ação | Oficial | Resp. Unidade | Supervisor | Membro IA | Gestor Config | Admin |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| `/oficial definir` (próprio perfil) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/oficial definir` (perfil alheio) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/oficial definir` | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | `/oficial ver` (próprio) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `/oficial ver` (alheio) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | Iniciar turno | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -828,19 +796,25 @@ Exibe todas as investigações do servidor com status e oficial envolvido.
 | Arma Perdida — arma de outro membro | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ |
 | Encerrar turno (própria unidade) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Encerrar turno alheio | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| `/arma registrar` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/arma arsenal` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/arma registrar` / `arsenal` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `/arma extravio` (própria arma) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `/arma extravio` (qualquer arma) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | `/historico` | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| `/ia abrir`, `/ia listar`, alterar status, encerrar | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Marcar status de penalidade | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| `/configurar`, `/configuracoes`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| `/turno listar` | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/turno forcar-encerrar` (próprio) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/turno forcar-encerrar` (alheio) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Painel Operacional | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Painel Administrativo | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Extravio pelo painel (qualquer arma) | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `/ia abrir`, listar, ver, alterar status | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| `/ia deletar` | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Painel de IA | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| `/configurar`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 > **Responsável da unidade** = oficial que executou `/iniciar` (papel `LEADER`).
-> **Membro de IA** = cargo definido via `/configurar cargo-ia`. Acesso exclusivo ao módulo de Assuntos Internos.
-> **Gestor de Configuração** = cargo definido via `/configurar cargo-gestor`. Pode configurar o bot mas não pode gerenciar os próprios cargos gestores.
+> **Membro de IA** = cargo definido via `/configurar cargo-ia`.
+> **Gestor de Configuração** = cargo definido via `/configurar cargo-gestor`.
 
 ---
 
@@ -853,10 +827,10 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 
 | Tabela | Descrição |
 |---|---|
-| `users` | Oficiais registrados (upsert automático ao interagir) |
-| `official_profiles` | Perfil operacional por oficial + servidor (distrito, callsign, distintivo) |
-| `ia_investigations` | Investigações internas com todos os dados, status e veredicto |
-| `shifts` | Turnos/unidades operacionais — `user_id` é o líder |
+| `users` | Oficiais registrados |
+| `official_profiles` | Perfil operacional (distrito, callsign, distintivo) |
+| `ia_investigations` | Investigações internas |
+| `shifts` | Turnos/unidades operacionais |
 | `shift_members` | Participantes de cada unidade (`LEADER` / `MEMBER`) |
 | `pauses` | Pausas com timestamps e duração |
 | `weapons` | Estado atual de cada arma no servidor |
@@ -864,22 +838,9 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `weapon_losses` | Histórico de extravios |
 | `vehicles` | Viaturas disponíveis por servidor |
 | `units` | Unidades operacionais disponíveis por servidor |
-| `guild_config` | Todas as configurações do servidor (canais, cargos, IDs) |
+| `guild_config` | Todas as configurações do servidor |
 | `bot_config` | Configurações globais do bot |
 | `migrations` | Controle de migrações executadas |
-
-### Campos relevantes em `shifts`
-
-| Coluna | Descrição |
-|---|---|
-| `user_id` | Líder da unidade |
-| `callsign` | Callsign completo (`3-A-12`) |
-| `vehicle_prefix` | Prefixo numérico legado (`312`) |
-| `vehicle_name` | Nome da viatura selecionada (`Ford Explorer`) |
-| `weapon_serials` | Array com os seriais de todas as armas da unidade |
-| `status` | `active` / `paused` / `ended` |
-| `end_reason` | `patrol_end` / `remodulation` / `other` |
-| `end_reason_note` | Texto livre quando `end_reason = 'other'` |
 
 ### Chaves relevantes em `guild_config`
 
@@ -892,36 +853,18 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `callsign_channel_id` | Canal do quadro de callsigns |
 | `callsign_message_id` | ID da mensagem persistente do quadro (interno) |
 | `ia_channel_id` | Canal de publicação dos quadros de investigações |
+| `ia_category_id` | Categoria para canais temporários de coleta de provas |
+| `ia_evidence_channel_id` | Canal de arquivo permanente de provas |
+| `panel_channel_id` | Canal do painel operacional |
+| `panel_message_id` | ID da mensagem persistente do painel (interno) |
+| `admin_panel_channel_id` | Canal do painel administrativo |
+| `admin_panel_message_id` | ID da mensagem persistente do painel admin (interno) |
+| `ia_panel_channel_id` | Canal do painel de IA |
+| `ia_panel_message_id` | ID da mensagem persistente do painel de IA (interno) |
 | `ia_role_ids` | JSON array de cargos de Assuntos Internos |
 | `supervisor_role_ids` | JSON array de cargos supervisores |
 | `config_manager_role_ids` | JSON array de cargos gestores de configuração |
-
-### Migrações
-
-| Arquivo | O que faz |
-|---|---|
-| `001_initial_schema.sql` | Tabelas base |
-| `002_guild_config.sql` | `guild_config` |
-| `003_add_guild_id.sql` | `guild_id` em `shifts` e `weapons` |
-| `004_weapons_guild_unique.sql` | Constraint `(serial_number, guild_id)` |
-| `005_official_weapons.sql` | Arsenal pessoal |
-| `006_bot_config.sql` | `bot_config` |
-| `007_shift_members.sql` | `shift_members` + `end_reason` em `shifts` |
-| `008_vehicles.sql` | `vehicles` + `vehicle_name` em `shifts` |
-| `009_units.sql` | Unidades operacionais por servidor |
-| `010_config_manager_roles.sql` | `config_manager_role_ids` em `guild_config` |
-| `011_official_profiles.sql` | Perfil operacional do oficial |
-| `012_add_badge_to_profiles.sql` | Coluna `badge_num` (distintivo) em `official_profiles` |
-| `013_ia_investigations.sql` | Tabela `ia_investigations` — sistema de Assuntos Internos |
-
----
-
-## Comportamento multi-guild
-
-- Ao ser adicionado a um novo servidor, o bot envia automaticamente um guia de configuração inicial.
-- Comandos operacionais são bloqueados com aviso amigável enquanto o servidor não estiver configurado.
-- Todos os dados são completamente isolados por `guild_id`.
-- Uma única instância atende dezenas de servidores sem interferência.
+| `police_role_ids` | JSON array de cargos com acesso ao bot |
 
 ---
 
@@ -938,63 +881,37 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 
 ### "Servidor ainda não foi configurado"
 - Execute os 4 comandos `/configurar` obrigatórios como administrador
-- Use `/configuracoes` para ver quais itens estão pendentes
 
 ### Erro ao iniciar turno — "configure seu perfil"
-- Execute `/oficial definir distrito:X callsign:Y` antes de usar `/iniciar`
+- Um supervisor deve usar `/oficial definir` ou o **Painel Administrativo** para configurar o perfil do oficial
 
 ### Botões desabilitados ao iniciar turno
-- Nenhuma unidade cadastrada — use `/unidade registrar` para adicionar pelo menos uma
+- Nenhuma unidade cadastrada — use `/unidade registrar`
 
-### Seletor de viatura não aparece no /iniciar
-- Cadastre viaturas com `/veiculo registrar` — sem viaturas o seletor não aparece
+### Canal de voz criado sem permissão de falar
+- Comportamento esperado — o responsável da unidade deve liberar manualmente no canal conforme necessário
 
-### Arsenal vazio ao iniciar turno
-- Cadastre armas com `/arma registrar <nome> <serie>` ou use o botão **Adicionar Arma** na embed
+### Painel não aparece após configurar o canal
+- O painel é publicado automaticamente ao executar `/configurar canal-painel` (ou admin/ia)
+- Se foi deletado manualmente, execute o `/configurar` novamente no mesmo canal para republicar
 
-### Armas extraviadas sendo incluídas no turno
-- Armas com status `lost` são excluídas automaticamente; execute `npm run db:migrate` se persistir
+### Erro ao criar canal temporário de provas
+- Verifique se `/configurar categoria-ia` está configurado
+- Confirme que o bot tem permissão `Manage Channels` e `Manage Permissions` na categoria de IA
 
-### Oficial adicional não pode ser incluído na unidade
-- O oficial já está em uma unidade ativa — peça para encerrar o turno atual primeiro
+### Provas não aparecem na investigação
+- Verifique se `/configurar canal-provas-ia` está configurado
+- Confirme que o bot tem permissão `Send Messages` e `Attach Files` no canal de provas
 
 ### Quadro de callsigns não atualiza
 - Verifique se o bot tem permissão `Read Message History` no canal de callsigns
-- Se a mensagem foi deletada, ela será recriada automaticamente na próxima atualização de perfil
-
-### Supervisor não consegue fechar turno de outro oficial
-- Confirme que o cargo está configurado via `/configurar cargo-supervisor`
-- O supervisor deve clicar nos botões diretamente na embed do turno
 
 ### Canal de voz não é criado
-- Confirme que a categoria foi configurada via `/configurar categoria-voz`
+- Confirme que `/configurar categoria-voz` está configurado
 - Verifique se o bot tem permissão `Manage Channels` na categoria
-
-### Gestor de configuração não consegue ver os comandos
-- Os comandos `/configurar`, `/configuracoes`, `/veiculo` e `/unidade` não têm restrição de visibilidade no Discord — todos os membros podem vê-los, mas apenas admins e gestores conseguem executá-los
 
 ### Ver logs em produção (PM2)
 ```bash
 pm2 logs police-bot --lines 100
 pm2 logs police-bot --err
 ```
-
----
-
-## Roadmap
-
-### v1.1 — Painel Operacional
-- `/status` — visão geral dos turnos ativos no servidor em tempo real
-
-### v1.2 — Relatórios Avançados
-- Dashboard semanal/mensal automático
-
-### v1.3 — Ocorrências
-- Sistema de registro de ocorrências vinculado ao turno ativo
-- Categorias: abordagem, perseguição, prisão, etc.
-
-### v1.4 — Assuntos Internos (melhorias)
-- Múltiplos acusados/envolvidos por investigação
-- Busca de investigação por número de caso ou oficial
-- Histórico de alterações de status com auditoria
-
