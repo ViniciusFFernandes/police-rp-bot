@@ -13,9 +13,10 @@ const pendingIA         = require('../utils/pendingIA');
 const iaRepo            = require('../repositories/iaRepository');
 const iaService         = require('../services/iaService');
 const officialRepo      = require('../repositories/officialProfileRepository');
-const guildConfigRepo   = require('../repositories/guildConfigRepository');
-const { COLOR }         = require('../utils/embeds');
-const logger            = require('../utils/logger');
+const guildConfigRepo    = require('../repositories/guildConfigRepository');
+const { collectEvidence } = require('../utils/collectEvidence');
+const { COLOR }          = require('../utils/embeds');
+const logger             = require('../utils/logger');
 
 module.exports = {
     customId: 'ia',
@@ -224,48 +225,15 @@ module.exports = {
                 return interaction.editReply({ content: '❌ Sessão expirada. A investigação precisará ser reaberta.' });
             }
 
-            // Coleta mensagens enviadas pelo oficial após a mensagem de coleta (no canal temporário)
-            const collectionMsgId = pending.collectionMsgId;
-            const userMessages    = collectionMsgId
-                ? (await interaction.channel.messages.fetch({ after: collectionMsgId, limit: 100 }))
-                      .filter(m => m.author.id === openerId && !m.author.bot)
-                : new Map();
-
-            // Separa textos (links) e attachments
-            const textParts       = [];
-            const attachmentFiles = [];
-            for (const msg of userMessages.values()) {
-                if (msg.content.trim()) textParts.push(msg.content.trim());
-                for (const att of msg.attachments.values()) {
-                    attachmentFiles.push({ url: att.url, name: att.name });
-                }
-            }
-
-            // Re-envia os arquivos para o canal de IA antes de deletar o temporário,
-            // garantindo que os URLs permaneçam acessíveis após a exclusão do canal
-            const persistentUrls = [];
-            const evidenceChannelId = await guildConfigRepo.get(interaction.guildId, 'ia_evidence_channel_id');
-            const iaChannel         = evidenceChannelId
-                ? (interaction.guild.channels.cache.get(evidenceChannelId) ?? await interaction.guild.channels.fetch(evidenceChannelId).catch(() => null))
-                : null;
-
-            if (iaChannel && attachmentFiles.length > 0) {
-                const caseNum  = pending.reservedCaseNumber ?? '—';
-                // Discord aceita URLs de attachment diretamente em files: e os rehospeda
-                const chunks = [];
-                for (let i = 0; i < attachmentFiles.length; i += 10) chunks.push(attachmentFiles.slice(i, i + 10));
-
-                for (const chunk of chunks) {
-                    const sent = await iaChannel.send({
-                        content: chunks.indexOf(chunk) === 0 ? `📎 Provas — **${caseNum}**` : null,
-                        files: chunk.map(f => f.url),
-                    });
-                    for (const att of sent.attachments.values()) persistentUrls.push(att.url);
-                }
-            }
-
-            const evidenceParts = [...textParts, ...persistentUrls];
-            const evidence = evidenceParts.length > 0 ? evidenceParts.join('\n') : null;
+            const archiveChannelId = await guildConfigRepo.get(interaction.guildId, 'ia_evidence_channel_id');
+            const evidence = await collectEvidence({
+                guild:            interaction.guild,
+                provasChannel:    interaction.channel,
+                collectionMsgId:  pending.collectionMsgId,
+                openerId,
+                archiveChannelId,
+                label:            pending.reservedCaseNumber ?? '—',
+            });
 
             await createInvestigation(interaction, openerId, evidence);
 
