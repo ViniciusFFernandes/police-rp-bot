@@ -111,55 +111,23 @@ module.exports = {
             }
 
             if (action === 'weapon_loss_select') {
-                await interaction.deferUpdate();
+                const serial = interaction.values[0];
 
-                const serial  = interaction.values[0];
-                const guildId = interaction.guildId;
+                const modal = new ModalBuilder()
+                    .setCustomId(`modal:panel_weapon_loss_officer:${serial}`)
+                    .setTitle('Extravio de Arma — Observação');
 
-                const dbUser = await userRepo.findByDiscordId(interaction.user.id);
-
-                const activeShift = dbUser
-                    ? await shiftRepo.findActiveByParticipant(dbUser.id, guildId)
-                    : null;
-                if (activeShift) {
-                    return interaction.editReply({
-                        content: '⚠️ Você está em uma unidade ativa. Use o botão **Arma Perdida** na embed do turno.',
-                        components: [],
-                    });
-                }
-
-                const ownWeapon = await officialWeaponRepo.findBySerial(guildId, serial);
-                if (!ownWeapon || ownWeapon.discord_id !== interaction.user.id) {
-                    return interaction.editReply({
-                        content: `❌ Arma \`${serial}\` não encontrada no seu arsenal.`,
-                        components: [],
-                    });
-                }
-
-                await weaponRepo.upsert(serial, guildId);
-                await weaponRepo.setLost(serial, guildId);
-
-                const weaponChannelId = await guildConfigRepo.get(guildId, 'weapon_report_channel_id');
-                const reportChannel   = interaction.guild.channels.cache.get(weaponChannelId);
-                if (reportChannel) {
-                    const embed = new EmbedBuilder()
-                        .setColor(COLOR.LOSS)
-                        .setTitle('🚨 Extravio de Armamento (Fora de Turno)')
-                        .addFields(
-                            { name: '👮 Oficial',   value: `<@${interaction.user.id}>`,             inline: true },
-                            { name: '📛 Nome',       value: ownWeapon.weapon_name || 'Não cadastrada', inline: true },
-                            { name: '🔢 Série',      value: `\`${serial}\``,                          inline: true },
-                            { name: '🕐 Horário',    value: formatTimestamp(new Date()),               inline: true },
-                            { name: '📝 Observação', value: 'Sem observação',                          inline: false },
-                        )
-                        .setTimestamp();
-                    await reportChannel.send({ embeds: [embed] });
-                }
-
-                return interaction.editReply({
-                    content: `⚠️ Extravio da arma **${ownWeapon.weapon_name}** (\`${serial}\`) registrado e relatório enviado.`,
-                    components: [],
-                });
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('observation')
+                            .setLabel('Motivo / Observação (opcional)')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setRequired(false)
+                            .setMaxLength(300)
+                    ),
+                );
+                return interaction.showModal(modal);
             }
 
             if (action === 'weapon_arsenal') {
