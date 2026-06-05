@@ -90,6 +90,8 @@ module.exports = {
                         rebuilt.components = row.components.map(c => {
                             if (c.customId === 'shiftcompose:confirm')
                                 return ButtonBuilder.from(c).setDisabled(false);
+                            if (c.customId === 'shiftcompose:unit')
+                                return StringSelectMenuBuilder.from(c).setPlaceholder(`✅ Unidade: ${unit}`);
                             if (c.type === 3) // STRING_SELECT
                                 return StringSelectMenuBuilder.from(c);
                             if (c.type === 5) // USER_SELECT
