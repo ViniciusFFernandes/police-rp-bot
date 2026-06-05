@@ -1,15 +1,7 @@
-const { EmbedBuilder } = require('discord.js');
-const pendingMeasure  = require('../utils/pendingMeasure');
-const guildConfigRepo = require('../repositories/guildConfigRepository');
-const { COLOR }       = require('../utils/embeds');
-const { formatTimestamp } = require('../utils/time');
-const logger          = require('../utils/logger');
-
-const TYPE_LABEL = {
-    punishment: '⚠️ Punição',
-    suspension:  '🚫 Afastamento',
-    other:       '📋 Outra Medida',
-};
+const pendingMeasure   = require('../utils/pendingMeasure');
+const iaMeasureRepo    = require('../repositories/iaMeasureRepository');
+const iaMeasureService = require('../services/iaMeasureService');
+const logger           = require('../utils/logger');
 
 module.exports = {
     customId: 'modal:iapanel_measure',
@@ -19,9 +11,9 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const targetId  = interaction.customId.split(':')[2];
-        const guildId   = interaction.guildId;
-        const pending   = pendingMeasure.get(guildId, interaction.user.id);
+        const targetId = interaction.customId.split(':')[2];
+        const guildId  = interaction.guildId;
+        const pending  = pendingMeasure.get(guildId, interaction.user.id);
 
         if (!pending?.type || !pending?.targetId) {
             return interaction.editReply({ content: '❌ Sessão expirada. Inicie novamente pelo painel de Assuntos Internos.' });
@@ -32,50 +24,27 @@ module.exports = {
         pendingMeasure.clear(guildId, interaction.user.id);
 
         try {
-            const targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
-            const targetUser   = targetMember?.user ?? await interaction.client.users.fetch(targetId).catch(() => null);
-            const targetName   = targetMember?.displayName ?? targetUser?.username ?? targetId;
+            const measureNumber = await iaMeasureRepo.nextMeasureNumber(guildId);
 
-            const channelId    = await guildConfigRepo.get(guildId, 'ia_measures_channel_id');
-            const alertChannel = channelId ? interaction.guild.channels.cache.get(channelId) : null;
+            const measure = await iaMeasureRepo.create({
+                guildId,
+                measureNumber,
+                type:               pending.type,
+                targetDiscordId:    targetId,
+                appliedByDiscordId: interaction.user.id,
+                duration,
+                weaponSurrender:    pending.weaponSurrender === 'yes',
+                description,
+            });
 
-            const fields = [
-                { name: '👮 Oficial',     value: `<@${targetId}>`,                    inline: true },
-                { name: '⚖️ Tipo',        value: TYPE_LABEL[pending.type] ?? pending.type, inline: true },
-                { name: '🔰 Aplicado por', value: `<@${interaction.user.id}>`,         inline: true },
-            ];
-
-            if (pending.type === 'suspension' && duration) {
-                fields.push({ name: '⏱️ Duração', value: duration, inline: true });
-            } else if (duration) {
-                fields.push({ name: '⏱️ Duração / Prazo', value: duration, inline: true });
-            }
-
-            if (pending.weaponSurrender === 'yes') {
-                fields.push({ name: '🔫 Entrega de Armamento', value: `<@${targetId}>, por gentileza entregue seus armamentos a um oficial da AI assim que possível.`, inline: false });
-            }
-            fields.push({ name: '📝 Descrição / Motivo', value: description, inline: false });
-            fields.push({ name: '🕐 Data/Hora', value: formatTimestamp(new Date()), inline: true });
-
-            const embed = new EmbedBuilder()
-                .setColor(pending.type === 'suspension' ? COLOR.LOSS : COLOR.PAUSED)
-                .setTitle(`⚖️ Medida Disciplinar — ${targetName}`)
-                .addFields(fields)
-                .setFooter({ text: interaction.guild.name })
-                .setTimestamp();
-
-            if (alertChannel) {
-                await alertChannel.send({ embeds: [embed] });
-            }
+            await iaMeasureService.postBoard(interaction.guild, measure);
 
             const weaponNote = pending.weaponSurrender === 'yes'
                 ? '\n⚠️ O oficial deve **entregar seu armamento** à equipe de Assuntos Internos.'
                 : '';
 
             return interaction.editReply({
-                content:
-                    `✅ Medida **${TYPE_LABEL[pending.type]}** aplicada a <@${targetId}>.${weaponNote}` +
-                    (alertChannel ? '' : '\n⚠️ Canal de alertas não configurado — use `/configurar canal-medidas-ia`.'),
+                content: `✅ Medida **${measureNumber}** registrada para <@${targetId}>.${weaponNote}`,
             });
         } catch (err) {
             logger.error('Erro ao registrar medida disciplinar', { guild: guildId, error: err.message });
