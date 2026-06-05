@@ -15,7 +15,8 @@ const officialWeaponRepo  = require('../repositories/officialWeaponRepository');
 const weaponRepo          = require('../repositories/weaponRepository');
 const shiftRepo           = require('../repositories/shiftRepository');
 const guildConfigRepo     = require('../repositories/guildConfigRepository');
-const pendingSR           = require('../utils/pendingSR');
+const pendingSR                = require('../utils/pendingSR');
+const { openCompositionScreen } = require('../utils/openCompositionScreen');
 const { isSupervisor, isAdmin } = require('../utils/permissions');
 const { formatTimestamp } = require('../utils/time');
 const { COLOR }           = require('../utils/embeds');
@@ -167,6 +168,11 @@ module.exports = {
                     .setTimestamp();
 
                 return interaction.editReply({ embeds: [embed] });
+            }
+
+            if (action === 'start_shift') {
+                await interaction.deferReply({ ephemeral: true });
+                return openCompositionScreen(interaction);
             }
 
             if (action === 'open_report') {
