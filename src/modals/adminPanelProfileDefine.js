@@ -13,7 +13,7 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const targetDiscordId = interaction.customId.split(':')[3];
+        const targetDiscordId = interaction.customId.split(':')[2];
         const guildId         = interaction.guildId;
 
         const district    = interaction.fields.getTextInputValue('distrito').trim().toUpperCase();
