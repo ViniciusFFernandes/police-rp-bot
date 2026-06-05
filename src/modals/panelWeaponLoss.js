@@ -4,6 +4,7 @@ const officialWeaponRepo = require('../repositories/officialWeaponRepository');
 const weaponRepo         = require('../repositories/weaponRepository');
 const shiftRepo          = require('../repositories/shiftRepository');
 const guildConfigRepo    = require('../repositories/guildConfigRepository');
+const { isSupervisor, isAdmin } = require('../utils/permissions');
 const { formatTimestamp } = require('../utils/time');
 const { COLOR }          = require('../utils/embeds');
 const logger             = require('../utils/logger');
@@ -36,7 +37,8 @@ module.exports = {
             if (!ownWeapon) {
                 return interaction.editReply({ content: `❌ A arma \`${serial}\` não está cadastrada no arsenal deste servidor.` });
             }
-            if (ownWeapon.discord_id !== interaction.user.id) {
+            const elevated = isAdmin(interaction.member) || await isSupervisor(interaction.member);
+            if (!elevated && ownWeapon.discord_id !== interaction.user.id) {
                 return interaction.editReply({ content: `❌ Você só pode registrar extravio das suas próprias armas.` });
             }
 
@@ -50,7 +52,8 @@ module.exports = {
                     .setColor(COLOR.LOSS)
                     .setTitle('🚨 Extravio de Armamento (Fora de Turno)')
                     .addFields(
-                        { name: '👮 Oficial',    value: `<@${interaction.user.id}>`,    inline: true },
+                        { name: '👮 Oficial',    value: `<@${ownWeapon.discord_id}>`,   inline: true },
+                        { name: '🔰 Registrado por', value: `<@${interaction.user.id}>`, inline: true },
                         { name: '📛 Nome',        value: ownWeapon.weapon_name || 'Não cadastrada', inline: true },
                         { name: '🔢 Série',       value: `\`${serial}\``,                inline: true },
                         { name: '🕐 Horário',     value: formatTimestamp(new Date()),    inline: true },
