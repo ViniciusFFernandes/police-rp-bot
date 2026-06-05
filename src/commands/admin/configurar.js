@@ -225,6 +225,16 @@ module.exports = {
                         .addChannelTypes(ChannelType.GuildCategory)
                         .setRequired(true)
                 )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-medidas-ia')
+                .setDescription('Canal onde os alertas de medidas disciplinares (punições, afastamentos) são enviados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
@@ -262,6 +272,7 @@ module.exports = {
             'canal-relatorios-sr': 'sr_channel_id',
             'canal-provas-sr':     'sr_evidence_channel_id',
             'categoria-sr':        'sr_category_id',
+            'canal-medidas-ia':    'ia_measures_channel_id',
         };
 
         if (KEY_MAP[sub]) {

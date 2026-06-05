@@ -23,6 +23,7 @@ const VALID_KEYS = [
     'sr_channel_id',            // canal onde os relatórios de serviço são publicados
     'sr_evidence_channel_id',   // canal de arquivo de provas de serviço
     'sr_category_id',           // categoria para canais temporários de provas de SR
+    'ia_measures_channel_id',   // canal onde alertas de medidas disciplinares são enviados
 ];
 
 async function get(guildId, key) {

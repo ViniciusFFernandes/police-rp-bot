@@ -17,10 +17,11 @@ function buildIAPanelEmbed() {
             'Todas as respostas são visíveis apenas para você.'
         )
         .addFields(
-            { name: '📂 Abrir Investigação', value: 'Inicia o fluxo de abertura de nova investigação.',          inline: true },
-            { name: '📋 Listar',             value: 'Lista investigações, com opção de filtrar por oficial.',    inline: true },
-            { name: '🔎 Ver Investigação',   value: 'Exibe detalhes de uma investigação pelo número do caso.',   inline: true },
-            { name: '🗑️ Deletar',            value: 'Deleta permanentemente uma investigação (supervisores).',   inline: true },
+            { name: '📂 Abrir Investigação', value: 'Inicia o fluxo de abertura de nova investigação.',                       inline: true },
+            { name: '📋 Listar',             value: 'Lista investigações, com opção de filtrar por oficial.',               inline: true },
+            { name: '🔎 Ver Investigação',   value: 'Exibe detalhes de uma investigação pelo número do caso.',              inline: true },
+            { name: '⚖️ Aplicar Medida',     value: 'Aplica punição, afastamento ou outra medida a um oficial.',           inline: true },
+            { name: '🗑️ Deletar',            value: 'Deleta permanentemente uma investigação (supervisores).',              inline: true },
         );
 }
 
@@ -41,6 +42,11 @@ function buildIAPanelComponents() {
             .setLabel('Ver Investigação')
             .setEmoji('🔎')
             .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('iapanel:measure')
+            .setLabel('Aplicar Medida')
+            .setEmoji('⚖️')
+            .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId('iapanel:delete')
             .setLabel('Deletar')

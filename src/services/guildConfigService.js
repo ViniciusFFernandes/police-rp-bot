@@ -110,6 +110,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde os arquivos de provas dos Relatórios de Serviço são arquivados',
     },
+    ia_measures_channel_id: {
+        label: 'Canal de Medidas Disciplinares',
+        emoji: '⚖️',
+        type: 'channel',
+        description: 'Canal onde os alertas de punições e afastamentos de oficiais são enviados',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

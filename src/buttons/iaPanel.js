@@ -9,9 +9,10 @@ const {
     ButtonStyle,
     EmbedBuilder,
 } = require('discord.js');
-const iaRepo     = require('../repositories/iaRepository');
-const iaService  = require('../services/iaService');
-const pendingIA  = require('../utils/pendingIA');
+const iaRepo          = require('../repositories/iaRepository');
+const iaService       = require('../services/iaService');
+const pendingIA       = require('../utils/pendingIA');
+const pendingMeasure  = require('../utils/pendingMeasure');
 const { isIAStaff, isAdmin, isSupervisor } = require('../utils/permissions');
 const { COLOR }  = require('../utils/embeds');
 const logger     = require('../utils/logger');
@@ -124,6 +125,104 @@ module.exports = {
                             .setStyle(TextInputStyle.Short)
                             .setRequired(true)
                             .setMaxLength(30)
+                    ),
+                );
+                return interaction.showModal(modal);
+            }
+
+            // ── Aplicar Medida — passo 1: selecionar oficial ─────────
+            if (action === 'measure') {
+                pendingMeasure.clear(interaction.guildId, interaction.user.id);
+                return interaction.reply({
+                    content: 'Selecione o oficial que receberá a medida:',
+                    components: [
+                        new ActionRowBuilder().addComponents(
+                            new UserSelectMenuBuilder()
+                                .setCustomId('iapanel:measure_user')
+                                .setPlaceholder('Selecione o oficial')
+                        ),
+                    ],
+                    ephemeral: true,
+                });
+            }
+
+            // ── Aplicar Medida — passo 2: tipo + entrega de arma ─────
+            if (action === 'measure_user') {
+                const targetId = interaction.values[0];
+                pendingMeasure.set(interaction.guildId, interaction.user.id, { targetId, type: null, weaponSurrender: 'no' });
+
+                const typeSelect = new StringSelectMenuBuilder()
+                    .setCustomId('iapanel:measure_type')
+                    .setPlaceholder('Selecione o tipo de medida')
+                    .addOptions([
+                        { label: '⚠️ Punição',       value: 'punishment', description: 'Advertência, suspensão de função, etc.' },
+                        { label: '🚫 Afastamento',    value: 'suspension', description: 'Afastamento temporário do oficial' },
+                        { label: '📋 Outra Medida',   value: 'other',      description: 'Outra medida disciplinar ou administrativa' },
+                    ]);
+
+                const weaponSelect = new StringSelectMenuBuilder()
+                    .setCustomId('iapanel:measure_weapon')
+                    .setPlaceholder('Entrega de armamento necessária?')
+                    .addOptions([
+                        { label: '❌ Não — armamento permanece com o oficial', value: 'no' },
+                        { label: '✅ Sim — oficial deve entregar armamento',   value: 'yes' },
+                    ]);
+
+                const continueBtn = new ButtonBuilder()
+                    .setCustomId('iapanel:measure_step2')
+                    .setLabel('Continuar →')
+                    .setStyle(ButtonStyle.Primary)
+                    .setEmoji('⚖️');
+
+                return interaction.update({
+                    content: `Oficial selecionado: <@${targetId}>\n\nDefina o tipo de medida e se há entrega de armamento:`,
+                    components: [
+                        new ActionRowBuilder().addComponents(typeSelect),
+                        new ActionRowBuilder().addComponents(weaponSelect),
+                        new ActionRowBuilder().addComponents(continueBtn),
+                    ],
+                });
+            }
+
+            // ── Aplicar Medida — seleção de tipo ─────────────────────
+            if (action === 'measure_type') {
+                pendingMeasure.set(interaction.guildId, interaction.user.id, { type: interaction.values[0] });
+                return interaction.deferUpdate();
+            }
+
+            // ── Aplicar Medida — seleção de entrega de arma ──────────
+            if (action === 'measure_weapon') {
+                pendingMeasure.set(interaction.guildId, interaction.user.id, { weaponSurrender: interaction.values[0] });
+                return interaction.deferUpdate();
+            }
+
+            // ── Aplicar Medida — passo 3: modal com duração + descrição
+            if (action === 'measure_step2') {
+                const pending = pendingMeasure.get(interaction.guildId, interaction.user.id);
+                if (!pending?.type) {
+                    return interaction.reply({ content: '❌ Selecione o tipo de medida antes de continuar.', ephemeral: true });
+                }
+
+                const modal = new ModalBuilder()
+                    .setCustomId(`modal:iapanel_measure:${pending.targetId}`)
+                    .setTitle('Medida Disciplinar — Detalhes');
+
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('duration')
+                            .setLabel('Duração / Prazo (ex: 3 dias, 1 semana)')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(pending.type === 'suspension')
+                            .setMaxLength(100)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('description')
+                            .setLabel('Descrição / Motivo da medida')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setRequired(true)
+                            .setMaxLength(1000)
                     ),
                 );
                 return interaction.showModal(modal);
