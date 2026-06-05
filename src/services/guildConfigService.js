@@ -56,6 +56,12 @@ const CONFIG_META = {
         type: 'category',
         description: 'Categoria onde os canais temporários de coleta de provas são criados',
     },
+    ia_evidence_channel_id: {
+        label: 'Canal de Provas de IA',
+        emoji: '📎',
+        type: 'channel',
+        description: 'Canal onde os arquivos de provas das investigações são arquivados',
+    },
     ia_role_ids: {
         label: 'Cargos de Assuntos Internos',
         emoji: '🔍',

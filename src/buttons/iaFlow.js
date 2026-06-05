@@ -244,8 +244,8 @@ module.exports = {
             // Re-envia os arquivos para o canal de IA antes de deletar o temporário,
             // garantindo que os URLs permaneçam acessíveis após a exclusão do canal
             const persistentUrls = [];
-            const iaChannelId    = await guildConfigRepo.get(interaction.guildId, 'ia_channel_id');
-            const iaChannel      = iaChannelId ? interaction.guild.channels.cache.get(iaChannelId) : null;
+            const evidenceChannelId = await guildConfigRepo.get(interaction.guildId, 'ia_evidence_channel_id');
+            const iaChannel         = evidenceChannelId ? interaction.guild.channels.cache.get(evidenceChannelId) : null;
 
             if (iaChannel && attachmentFiles.length > 0) {
                 const caseNum  = pending.reservedCaseNumber ?? '—';

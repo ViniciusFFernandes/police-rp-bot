@@ -85,6 +85,16 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('canal-provas-ia')
+                .setDescription('Canal onde os arquivos de provas das investigações são arquivados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('canal-painel')
                 .setDescription('Canal onde o painel operacional com botões de ação é publicado')
                 .addChannelOption(opt =>
@@ -215,6 +225,7 @@ module.exports = {
             'canal-callsign':   'callsign_channel_id',
             'canal-ia':         'ia_channel_id',
             'categoria-ia':     'ia_category_id',
+            'canal-provas-ia':  'ia_evidence_channel_id',
             'canal-painel':       'panel_channel_id',
             'canal-painel-admin': 'admin_panel_channel_id',
             'canal-painel-ia':    'ia_panel_channel_id',
