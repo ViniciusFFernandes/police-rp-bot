@@ -12,6 +12,8 @@ const VALID_KEYS = [
     'ia_channel_id',
     'ia_role_ids',
     'police_role_ids',
+    'panel_channel_id',
+    'panel_message_id',   // interno — ID da mensagem persistente do painel
 ];
 
 async function get(guildId, key) {

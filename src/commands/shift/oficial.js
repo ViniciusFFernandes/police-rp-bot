@@ -62,6 +62,13 @@ module.exports = {
 
         // ── /oficial definir ───────────────────────────────────────
         if (sub === 'definir') {
+            // Restrito a supervisores e administradores
+            if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+                return interaction.editReply({
+                    content: '❌ Apenas **Administradores** e **Supervisores** podem definir perfis de oficiais.',
+                });
+            }
+
             const district    = interaction.options.getString('distrito').trim().toUpperCase();
             const callsignNum = interaction.options.getString('callsign').trim();
             const badgeNum    = interaction.options.getString('distintivo')?.trim() ?? null;
@@ -69,13 +76,6 @@ module.exports = {
             const targetUser  = interaction.options.getUser('usuario') ?? null;
 
             const isSelf = !targetUser || targetUser.id === interaction.user.id;
-
-            // Apenas supervisor/admin pode definir o perfil de outro oficial
-            if (!isSelf && !isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
-                return interaction.editReply({
-                    content: '❌ Apenas **Administradores** e **Supervisores** podem definir o perfil de outros oficiais.',
-                });
-            }
 
             const subject = isSelf ? interaction.member : await interaction.guild.members.fetch(targetUser.id).catch(() => null);
             const subjectUser = isSelf ? interaction.user : (subject?.user ?? targetUser);
@@ -149,8 +149,8 @@ module.exports = {
 
             if (!profile) {
                 const hint = isSelf
-                    ? 'Use `/oficial definir` para configurar seu perfil.'
-                    : `<@${targetUser.id}> ainda não configurou o perfil neste servidor.`;
+                    ? 'Solicite a um supervisor que configure seu perfil.'
+                    : `<@${targetUser.id}> ainda não possui perfil configurado neste servidor.`;
                 return interaction.editReply({ content: `⚠️ Nenhum perfil encontrado. ${hint}` });
             }
 

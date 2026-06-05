@@ -5,6 +5,7 @@ const {
 const guildConfigService    = require('../../services/guildConfigService');
 const guildConfigRepo       = require('../../repositories/guildConfigRepository');
 const callsignBoardService  = require('../../services/callsignBoardService');
+const panelService          = require('../../services/panelService');
 const { isConfigManager, isAdmin } = require('../../utils/permissions');
 
 module.exports = {
@@ -64,6 +65,16 @@ module.exports = {
         .addSubcommand(sub =>
             sub.setName('canal-ia')
                 .setDescription('Canal onde os quadros das investigações de Assuntos Internos são publicados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-painel')
+                .setDescription('Canal onde o painel operacional com botões de ação é publicado')
                 .addChannelOption(opt =>
                     opt.setName('canal')
                         .setDescription('Selecione o canal')
@@ -171,6 +182,7 @@ module.exports = {
             'categoria-voz':    'voice_category_id',
             'canal-callsign':   'callsign_channel_id',
             'canal-ia':         'ia_channel_id',
+            'canal-painel':     'panel_channel_id',
         };
 
         if (KEY_MAP[sub]) {
@@ -185,6 +197,14 @@ module.exports = {
                 await callsignBoardService.refresh(interaction.guild);
                 return interaction.editReply({
                     content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO quadro de callsigns foi publicado nesse canal e será atualizado automaticamente.`,
+                });
+            }
+
+            if (sub === 'canal-painel') {
+                await guildConfigRepo.set(guildId, 'panel_message_id', null);
+                await panelService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel operacional foi publicado nesse canal.`,
                 });
             }
 
