@@ -42,9 +42,9 @@ async function collectEvidence({ guild, provasChannelId, collectionMsgId, opener
             : null;
 
         if (archiveChannel) {
-            // Conta links já existentes para continuar a numeração
+            // Conta todos os links já existentes (numerados ou não) para continuar a sequência
             const existingCount = existingEvidence
-                ? (existingEvidence.match(/^\[\d+\]/gm) ?? []).length
+                ? (existingEvidence.match(/discord\.com\/channels\/\d+\/\d+\/\d+/g) ?? []).length
                 : 0;
 
             const chunks = [];
