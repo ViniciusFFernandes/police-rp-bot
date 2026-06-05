@@ -57,4 +57,31 @@ async function updateBoard(id, guildId, messageId, channelId) {
     );
 }
 
-module.exports = { nextMeasureNumber, create, findById, updateStatus, updateBoard };
+async function listByGuild(guildId, { targetDiscordId } = {}) {
+    if (targetDiscordId) {
+        const { rows } = await db.query(
+            'SELECT * FROM ia_measures WHERE guild_id = $1 AND target_discord_id = $2 ORDER BY created_at DESC',
+            [guildId, targetDiscordId]
+        );
+        return rows;
+    }
+    const { rows } = await db.query(
+        'SELECT * FROM ia_measures WHERE guild_id = $1 ORDER BY created_at DESC',
+        [guildId]
+    );
+    return rows;
+}
+
+async function findByMeasureNumber(measureNumber, guildId) {
+    const { rows } = await db.query(
+        'SELECT * FROM ia_measures WHERE measure_number = $1 AND guild_id = $2',
+        [measureNumber, guildId]
+    );
+    return rows[0] ?? null;
+}
+
+async function remove(id, guildId) {
+    await db.query('DELETE FROM ia_measures WHERE id = $1 AND guild_id = $2', [id, guildId]);
+}
+
+module.exports = { nextMeasureNumber, create, findById, findByMeasureNumber, updateStatus, updateBoard, listByGuild, remove };

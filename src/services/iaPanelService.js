@@ -17,11 +17,13 @@ function buildIAPanelEmbed() {
             'Todas as respostas são visíveis apenas para você.'
         )
         .addFields(
-            { name: '📂 Abrir Investigação', value: 'Inicia o fluxo de abertura de nova investigação.',                       inline: true },
-            { name: '📋 Listar',             value: 'Lista investigações, com opção de filtrar por oficial.',               inline: true },
-            { name: '🔎 Ver Investigação',   value: 'Exibe detalhes de uma investigação pelo número do caso.',              inline: true },
-            { name: '⚖️ Aplicar Medida',     value: 'Aplica punição, afastamento ou outra medida a um oficial.',           inline: true },
-            { name: '🗑️ Deletar',            value: 'Deleta permanentemente uma investigação (supervisores).',              inline: true },
+            { name: '📂 Abrir Investigação',   value: 'Inicia o fluxo de abertura de nova investigação.',                   inline: true },
+            { name: '📋 Listar Investigações', value: 'Lista investigações, com opção de filtrar por oficial.',             inline: true },
+            { name: '🔎 Ver Investigação',     value: 'Exibe detalhes de uma investigação pelo número do caso.',            inline: true },
+            { name: '⚖️ Aplicar Medida',       value: 'Aplica punição, afastamento ou outra medida a um oficial.',         inline: true },
+            { name: '📊 Listar Medidas',        value: 'Lista medidas disciplinares, com opção de filtrar por oficial.',   inline: true },
+            { name: '🗑️ Deletar Investigação',  value: 'Deleta permanentemente uma investigação (supervisores).',          inline: true },
+            { name: '🗑️ Deletar Medida',        value: 'Deleta permanentemente uma medida disciplinar (supervisores).',    inline: true },
         );
 }
 
@@ -49,11 +51,25 @@ function buildIAPanelComponents() {
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId('iapanel:delete')
-            .setLabel('Deletar')
+            .setLabel('Deletar Investigação')
             .setEmoji('🗑️')
             .setStyle(ButtonStyle.Danger),
     );
-    return [row];
+
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('iapanel:measure_list')
+            .setLabel('Listar Medidas')
+            .setEmoji('📊')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('iapanel:measure_delete')
+            .setLabel('Deletar Medida')
+            .setEmoji('🗑️')
+            .setStyle(ButtonStyle.Danger),
+    );
+
+    return [row, row2];
 }
 
 async function refresh(guild) {

@@ -11,6 +11,7 @@ const {
 } = require('discord.js');
 const iaRepo          = require('../repositories/iaRepository');
 const iaService       = require('../services/iaService');
+const iaMeasureRepo   = require('../repositories/iaMeasureRepository');
 const pendingIA       = require('../utils/pendingIA');
 const pendingMeasure  = require('../utils/pendingMeasure');
 const { isIAStaff, isAdmin, isSupervisor } = require('../utils/permissions');
@@ -228,6 +229,63 @@ module.exports = {
                 return interaction.showModal(modal);
             }
 
+            // ── Listar Medidas — passo 1: filtro ─────────────────────
+            if (action === 'measure_list') {
+                const userSelect = new UserSelectMenuBuilder()
+                    .setCustomId('iapanel:measure_list_filter')
+                    .setPlaceholder('Filtrar por oficial (opcional)');
+
+                const allBtn = new ButtonBuilder()
+                    .setCustomId('iapanel:measure_list_all')
+                    .setLabel('Listar Todas')
+                    .setStyle(ButtonStyle.Secondary);
+
+                return interaction.reply({
+                    content: 'Selecione um oficial para filtrar ou clique em **Listar Todas**:',
+                    components: [
+                        new ActionRowBuilder().addComponents(userSelect),
+                        new ActionRowBuilder().addComponents(allBtn),
+                    ],
+                    ephemeral: true,
+                });
+            }
+
+            if (action === 'measure_list_filter') {
+                await interaction.deferUpdate();
+                return renderMeasureList(interaction, interaction.values[0]);
+            }
+
+            if (action === 'measure_list_all') {
+                await interaction.deferUpdate();
+                return renderMeasureList(interaction, null);
+            }
+
+            // ── Deletar Medida — apenas supervisores/admins ───────────
+            if (action === 'measure_delete') {
+                if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+                    return interaction.reply({
+                        content: '❌ Apenas **Administradores** e **Supervisores** podem deletar medidas.',
+                        ephemeral: true,
+                    });
+                }
+
+                const modal = new ModalBuilder()
+                    .setCustomId('modal:iapanel_measure_delete')
+                    .setTitle('Deletar Medida Disciplinar');
+
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('measure_number')
+                            .setLabel('Número da Medida (ex: MD-2026-001)')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setMaxLength(30)
+                    ),
+                );
+                return interaction.showModal(modal);
+            }
+
             // ── Deletar — apenas supervisores/admins ──────────────────
             if (action === 'delete') {
                 if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
@@ -264,6 +322,36 @@ module.exports = {
         }
     },
 };
+
+async function renderMeasureList(interaction, targetDiscordId) {
+    const measures = await iaMeasureRepo.listByGuild(interaction.guildId, { targetDiscordId });
+
+    const titulo = targetDiscordId
+        ? `⚖️ Medidas — Oficial: <@${targetDiscordId}>`
+        : '⚖️ Medidas Disciplinares';
+
+    if (measures.length === 0) {
+        const msg = targetDiscordId
+            ? `⚖️ Nenhuma medida encontrada para <@${targetDiscordId}>.`
+            : '⚖️ Nenhuma medida disciplinar encontrada neste servidor.';
+        return interaction.editReply({ content: msg, components: [] });
+    }
+
+    const STATUS_ICON = { pending: '🟡', in_progress: '🔵', completed: '🟢' };
+    const TYPE_SHORT  = { punishment: 'Punição', suspension: 'Afastamento', other: 'Outra' };
+    const lines = measures.map(m =>
+        `${STATUS_ICON[m.status] || '⚪'} **${m.measure_number}** — <@${m.target_discord_id}> — ${TYPE_SHORT[m.type] || m.type}`
+    );
+
+    const embed = new EmbedBuilder()
+        .setColor(COLOR.INFO)
+        .setTitle(titulo)
+        .setDescription(lines.join('\n').slice(0, 4000))
+        .setFooter({ text: `${measures.length} medida(s) encontrada(s) · ${interaction.guild.name}` })
+        .setTimestamp();
+
+    return interaction.editReply({ embeds: [embed], components: [] });
+}
 
 async function renderList(interaction, involvedDiscordId) {
     const cases = await iaRepo.listByGuild(interaction.guildId, { involvedDiscordId });

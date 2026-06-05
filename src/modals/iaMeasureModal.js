@@ -37,14 +37,21 @@ module.exports = {
                 description,
             });
 
-            await iaMeasureService.postBoard(interaction.guild, measure);
+            let boardOk = true;
+            try {
+                await iaMeasureService.postBoard(interaction.guild, measure);
+            } catch (boardErr) {
+                boardOk = false;
+                logger.warn('Não foi possível postar o board de medida', { guild: guildId, error: boardErr.message });
+            }
 
             const weaponNote = pending.weaponSurrender === 'yes'
                 ? '\n⚠️ O oficial deve **entregar seu armamento** à equipe de Assuntos Internos.'
                 : '';
+            const boardNote = boardOk ? '' : '\n⚠️ Não foi possível publicar no canal de medidas — verifique as permissões do bot.';
 
             return interaction.editReply({
-                content: `✅ Medida **${measureNumber}** registrada para <@${targetId}>.${weaponNote}`,
+                content: `✅ Medida **${measureNumber}** registrada para <@${targetId}>.${weaponNote}${boardNote}`,
             });
         } catch (err) {
             logger.error('Erro ao registrar medida disciplinar', { guild: guildId, error: err.message });
