@@ -10,6 +10,10 @@ const logger             = require('../utils/logger');
 module.exports = {
     customId: 'modal:panel_weapon_register',
 
+    matches(id) {
+        return id === 'modal:panel_weapon_register' || id.startsWith('modal:panel_weapon_register:');
+    },
+
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -17,11 +21,30 @@ module.exports = {
         const serial     = interaction.fields.getTextInputValue('serial_number').trim();
         const guildId    = interaction.guildId;
 
+        // Supervisor registrando para outro oficial: targetId vem no customId
+        const parts    = interaction.customId.split(':');
+        const targetId = parts[2] ?? interaction.user.id;
+        const isForOther = targetId !== interaction.user.id;
+
         try {
+            let targetMember = null;
+            let targetUser   = null;
+
+            if (isForOther) {
+                targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
+                targetUser   = targetMember?.user ?? await interaction.client.users.fetch(targetId).catch(() => null);
+                if (!targetUser) {
+                    return interaction.editReply({ content: '❌ Não foi possível encontrar o oficial informado.' });
+                }
+            } else {
+                targetUser   = interaction.user;
+                targetMember = interaction.member;
+            }
+
             const dbUser = await userRepo.upsert(
-                interaction.user.id,
-                interaction.user.username,
-                interaction.member.displayName
+                targetUser.id,
+                targetUser.username,
+                targetMember?.displayName ?? targetUser.username,
             );
 
             await officialWeaponRepo.register(dbUser.id, guildId, weaponName, serial);
@@ -34,17 +57,19 @@ module.exports = {
                     .setColor(COLOR.INFO)
                     .setTitle('🔫 Nova Arma Registrada no Arsenal')
                     .addFields(
-                        { name: '👮 Oficial',      value: `<@${interaction.user.id}>`, inline: true },
-                        { name: '📛 Nome',          value: weaponName,                  inline: true },
-                        { name: '🔢 Série',         value: `\`${serial}\``,             inline: true },
-                        { name: '🕐 Registrada em', value: formatTimestamp(new Date()), inline: true },
+                        { name: '👮 Oficial',        value: `<@${targetUser.id}>`,         inline: true },
+                        { name: '📛 Nome',            value: weaponName,                     inline: true },
+                        { name: '🔢 Série',           value: `\`${serial}\``,               inline: true },
+                        { name: '🕐 Registrada em',   value: formatTimestamp(new Date()),    inline: true },
+                        ...(isForOther ? [{ name: '🔰 Registrado por', value: `<@${interaction.user.id}>`, inline: true }] : []),
                     )
                     .setTimestamp();
                 await reportChannel.send({ embeds: [embed] });
             }
 
+            const target = isForOther ? `<@${targetUser.id}>` : 'seu';
             return interaction.editReply({
-                content: `✅ Arma **${weaponName}** (\`${serial}\`) registrada no seu arsenal.\nEla será carregada automaticamente ao iniciar um turno.`,
+                content: `✅ Arma **${weaponName}** (\`${serial}\`) registrada no arsenal de ${target}.\nEla será carregada automaticamente ao iniciar um turno.`,
             });
         } catch (err) {
             logger.error('Erro ao registrar arma pelo painel', { guild: guildId, error: err.message });

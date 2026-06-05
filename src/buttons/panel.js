@@ -36,8 +36,51 @@ module.exports = {
 
         try {
             if (action === 'weapon_register') {
+                const elevated = isAdmin(interaction.member) || await isSupervisor(interaction.member);
+                if (elevated) {
+                    return interaction.reply({
+                        content: 'Selecione o oficial que receberá a arma:',
+                        components: [
+                            new ActionRowBuilder().addComponents(
+                                new UserSelectMenuBuilder()
+                                    .setCustomId('panel:weapon_register_user')
+                                    .setPlaceholder('Selecione o oficial')
+                            ),
+                        ],
+                        ephemeral: true,
+                    });
+                }
+
                 const modal = new ModalBuilder()
                     .setCustomId('modal:panel_weapon_register')
+                    .setTitle('Registrar Arma no Arsenal');
+
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('weapon_name')
+                            .setLabel('Nome / Tipo da Arma')
+                            .setPlaceholder('ex: Glock 17, AR-15')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setMaxLength(100)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('serial_number')
+                            .setLabel('Número de Série')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setMaxLength(50)
+                    ),
+                );
+                return interaction.showModal(modal);
+            }
+
+            if (action === 'weapon_register_user') {
+                const targetId = interaction.values[0];
+                const modal = new ModalBuilder()
+                    .setCustomId(`modal:panel_weapon_register:${targetId}`)
                     .setTitle('Registrar Arma no Arsenal');
 
                 modal.addComponents(
