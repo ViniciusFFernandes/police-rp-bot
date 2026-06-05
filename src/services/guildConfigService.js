@@ -92,6 +92,24 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde o painel de IA com botões de ação é publicado',
     },
+    sr_channel_id: {
+        label: 'Canal de Relatórios de Serviço',
+        emoji: '📋',
+        type: 'channel',
+        description: 'Canal onde os quadros de Relatórios de Serviço são publicados',
+    },
+    sr_category_id: {
+        label: 'Categoria de Relatórios de Serviço',
+        emoji: '📋',
+        type: 'category',
+        description: 'Categoria onde os canais temporários de coleta de provas de SR são criados',
+    },
+    sr_evidence_channel_id: {
+        label: 'Canal de Provas de SR',
+        emoji: '📎',
+        type: 'channel',
+        description: 'Canal onde os arquivos de provas dos Relatórios de Serviço são arquivados',
+    },
 };
 
 async function setChannel(guildId, key, channel) {
