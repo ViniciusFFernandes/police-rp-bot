@@ -231,16 +231,43 @@ module.exports = {
                       .filter(m => m.author.id === openerId && !m.author.bot)
                 : new Map();
 
-            const evidenceParts = [];
+            // Separa textos (links) e attachments
+            const textParts       = [];
+            const attachmentFiles = [];
             for (const msg of userMessages.values()) {
-                if (msg.content.trim()) evidenceParts.push(msg.content.trim());
-                for (const att of msg.attachments.values()) evidenceParts.push(att.url);
+                if (msg.content.trim()) textParts.push(msg.content.trim());
+                for (const att of msg.attachments.values()) {
+                    attachmentFiles.push({ url: att.url, name: att.name });
+                }
             }
+
+            // Re-envia os arquivos para o canal de IA antes de deletar o temporário,
+            // garantindo que os URLs permaneçam acessíveis após a exclusão do canal
+            const persistentUrls = [];
+            const iaChannelId    = await guildConfigRepo.get(interaction.guildId, 'ia_channel_id');
+            const iaChannel      = iaChannelId ? interaction.guild.channels.cache.get(iaChannelId) : null;
+
+            if (iaChannel && attachmentFiles.length > 0) {
+                const caseNum  = pending.reservedCaseNumber ?? '—';
+                // Discord aceita URLs de attachment diretamente em files: e os rehospeda
+                const chunks = [];
+                for (let i = 0; i < attachmentFiles.length; i += 10) chunks.push(attachmentFiles.slice(i, i + 10));
+
+                for (const chunk of chunks) {
+                    const sent = await iaChannel.send({
+                        content: chunks.indexOf(chunk) === 0 ? `📎 Provas — **${caseNum}**` : null,
+                        files: chunk.map(f => f.url),
+                    });
+                    for (const att of sent.attachments.values()) persistentUrls.push(att.url);
+                }
+            }
+
+            const evidenceParts = [...textParts, ...persistentUrls];
             const evidence = evidenceParts.length > 0 ? evidenceParts.join('\n') : null;
 
             await createInvestigation(interaction, openerId, evidence);
 
-            // Deleta o canal temporário de provas
+            // Deleta o canal temporário de provas (arquivos já foram rehospedados)
             const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
             if (provasChannel) await provasChannel.delete().catch(() => {});
         }
