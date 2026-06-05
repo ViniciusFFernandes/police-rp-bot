@@ -18,7 +18,7 @@ function _ensure(guildId, userId) {
     const e = _get(guildId, userId);
     if (e) { e.ts = Date.now(); return e; }
     const fresh = {
-        origin: null, involvedDiscordId: null,
+        origin: null, involvedDiscordIds: [],
         radioVehicle: null, incidentDate: null, incidentTime: null,
         incidentLocation: null, classification: null,
         complainantId: null, description: null, evidence: null,
@@ -28,10 +28,10 @@ function _ensure(guildId, userId) {
     return fresh;
 }
 
-function setStep1(guildId, userId, origin, involvedDiscordId) {
+function setStep1(guildId, userId, origin, involvedDiscordIds) {
     const e = _ensure(guildId, userId);
     e.origin = origin;
-    e.involvedDiscordId = involvedDiscordId;
+    e.involvedDiscordIds = involvedDiscordIds ?? [];
 }
 
 function setStep2(guildId, userId, fields) {

@@ -19,6 +19,7 @@ async function create(data) {
         guildId, caseNumber, origin,
         openedByDiscordId, involvedDiscordId,
         involvedCallsign, involvedBadge, involvedDistrict,
+        additionalInvolvedIds,
         radioVehicle, incidentDate, incidentTime,
         incidentLocation, classification, complainantId,
         description, evidence,
@@ -28,13 +29,15 @@ async function create(data) {
         `INSERT INTO ia_investigations
          (guild_id, case_number, origin, opened_by_discord_id,
           involved_discord_id, involved_callsign, involved_badge, involved_district,
+          additional_involved_ids,
           radio_vehicle, incident_date, incident_time, incident_location,
           classification, complainant_id, description, evidence)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          RETURNING *`,
         [
             guildId, caseNumber, origin, openedByDiscordId,
             involvedDiscordId, involvedCallsign || null, involvedBadge || null, involvedDistrict || null,
+            additionalInvolvedIds ? JSON.stringify(additionalInvolvedIds) : null,
             radioVehicle || null, incidentDate || null, incidentTime || null, incidentLocation || null,
             classification || null, complainantId || null, description || null, evidence || null,
         ]
@@ -104,4 +107,29 @@ async function listByGuild(guildId, { status = null, involvedDiscordId = null } 
     return rows;
 }
 
-module.exports = { nextCaseNumber, create, findById, findByCaseNumber, remove, updateBoard, updateStatus, close, updatePenaltyStatus, listByGuild };
+async function updateAdditionalAccused(id, guildId, ids) {
+    await db.query(
+        'UPDATE ia_investigations SET additional_involved_ids = $1 WHERE id = $2 AND guild_id = $3',
+        [ids && ids.length ? JSON.stringify(ids) : null, id, guildId]
+    );
+}
+
+async function updateDescription(id, guildId, description) {
+    await db.query(
+        'UPDATE ia_investigations SET description = $1 WHERE id = $2 AND guild_id = $3',
+        [description, id, guildId]
+    );
+}
+
+async function appendEvidence(id, guildId, newEvidence) {
+    const inv = await findById(id, guildId);
+    const existing = inv?.evidence || '';
+    const updated = existing ? `${existing}\n${newEvidence}` : newEvidence;
+    await db.query(
+        'UPDATE ia_investigations SET evidence = $1 WHERE id = $2 AND guild_id = $3',
+        [updated, id, guildId]
+    );
+    return updated;
+}
+
+module.exports = { nextCaseNumber, create, findById, findByCaseNumber, remove, updateBoard, updateStatus, close, updatePenaltyStatus, listByGuild, updateAdditionalAccused, updateDescription, appendEvidence };

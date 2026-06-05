@@ -38,7 +38,7 @@ module.exports = {
         // ── Seleção do oficial envolvido ─────────────────────────────
         if (action === 'involved') {
             const pending = pendingIA.get(interaction.guildId, interaction.user.id) || {};
-            pendingIA.setStep1(interaction.guildId, interaction.user.id, pending.origin, interaction.values[0]);
+            pendingIA.setStep1(interaction.guildId, interaction.user.id, pending.origin, interaction.values);
             return interaction.deferUpdate();
         }
 
@@ -49,7 +49,7 @@ module.exports = {
             if (!pending?.origin) {
                 return interaction.reply({ content: '❌ Selecione a **origem** da investigação.', ephemeral: true });
             }
-            if (!pending?.involvedDiscordId) {
+            if (!pending?.involvedDiscordIds?.length) {
                 return interaction.reply({ content: '❌ Selecione o **oficial acusado/envolvido**.', ephemeral: true });
             }
 
@@ -310,25 +310,29 @@ async function createInvestigation(interaction, openerId, evidence) {
             return interaction.reply({ ...msg, ephemeral: true });
         }
 
-        const profile    = await officialRepo.findByDiscordId(pending.involvedDiscordId, interaction.guildId);
-        const caseNumber = pending.reservedCaseNumber ?? await iaRepo.nextCaseNumber(interaction.guildId);
+        const involvedIds  = pending.involvedDiscordIds ?? [];
+        const primaryId    = involvedIds[0] ?? null;
+        const extraIds     = involvedIds.slice(1);
+        const profile      = primaryId ? await officialRepo.findByDiscordId(primaryId, interaction.guildId) : null;
+        const caseNumber   = pending.reservedCaseNumber ?? await iaRepo.nextCaseNumber(interaction.guildId);
 
         const inv = await iaRepo.create({
-            guildId:           interaction.guildId,
+            guildId:                 interaction.guildId,
             caseNumber,
-            origin:            pending.origin,
-            openedByDiscordId: openerId,
-            involvedDiscordId: pending.involvedDiscordId,
-            involvedCallsign:  profile?.callsign_num  || null,
-            involvedBadge:     profile?.badge_num      || null,
-            involvedDistrict:  profile?.district       || null,
-            radioVehicle:      pending.radioVehicle,
-            incidentDate:      pending.incidentDate,
-            incidentTime:      pending.incidentTime,
-            incidentLocation:  pending.incidentLocation,
-            classification:    pending.classification,
-            complainantId:     pending.complainantId,
-            description:       pending.description,
+            origin:                  pending.origin,
+            openedByDiscordId:       openerId,
+            involvedDiscordId:       primaryId,
+            involvedCallsign:        profile?.callsign_num  || null,
+            involvedBadge:           profile?.badge_num      || null,
+            involvedDistrict:        profile?.district       || null,
+            additionalInvolvedIds:   extraIds.length ? extraIds : null,
+            radioVehicle:            pending.radioVehicle,
+            incidentDate:            pending.incidentDate,
+            incidentTime:            pending.incidentTime,
+            incidentLocation:        pending.incidentLocation,
+            classification:          pending.classification,
+            complainantId:           pending.complainantId,
+            description:             pending.description,
             evidence,
         });
 

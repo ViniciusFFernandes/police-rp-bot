@@ -45,7 +45,7 @@ function buildBoardEmbed(inv) {
             { name: '👮 Responsável', value: `<@${inv.opened_by_discord_id}>`, inline: true },
         );
 
-    // Acusado
+    // Acusado principal
     const callsignInfo = inv.involved_callsign ? `\`${inv.involved_callsign}\`` : '—';
     const badgeInfo    = inv.involved_badge    ? `\`${inv.involved_badge.padStart(4, '0')}\`` : '—';
     const distInfo     = inv.involved_district ? `Distrito ${inv.involved_district}` : '—';
@@ -55,6 +55,19 @@ function buildBoardEmbed(inv) {
         { name: '🪪 Distintivo', value: badgeInfo, inline: true },
         { name: '🗺️ Distrito', value: distInfo, inline: true },
     );
+
+    // Acusados adicionais
+    if (inv.additional_involved_ids) {
+        let extraIds;
+        try { extraIds = JSON.parse(inv.additional_involved_ids); } catch { extraIds = []; }
+        if (extraIds.length > 0) {
+            embed.addFields({
+                name: '🚨 Demais Acusados/Envolvidos',
+                value: extraIds.map(id => `<@${id}>`).join('\n'),
+                inline: false,
+            });
+        }
+    }
 
     if (inv.radio_vehicle) {
         embed.addFields({ name: '📻 Identificação (Dia)', value: `\`${inv.radio_vehicle}\``, inline: true });
@@ -128,6 +141,25 @@ function buildBoardButtons(inv) {
             .setEmoji('🔴');
 
         rows.push(new ActionRowBuilder().addComponents(activeBtn, suspendBtn, closeBtn));
+
+        // Botões de gerenciamento do caso
+        rows.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`ia_board:add_accused:${inv.id}`)
+                .setLabel('Adicionar Acusado')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('➕'),
+            new ButtonBuilder()
+                .setCustomId(`ia_board:edit_description:${inv.id}`)
+                .setLabel('Editar Descrição')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('✏️'),
+            new ButtonBuilder()
+                .setCustomId(`ia_board:add_evidence:${inv.id}`)
+                .setLabel('Adicionar Provas')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('📎'),
+        ));
     } else if (!inv.penalty_status) {
         // Botões de penalidade após encerramento
         rows.push(new ActionRowBuilder().addComponents(

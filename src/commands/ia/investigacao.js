@@ -75,7 +75,9 @@ module.exports = {
 
             const officerSelect = new UserSelectMenuBuilder()
                 .setCustomId('ia:involved')
-                .setPlaceholder('Selecione o oficial acusado/envolvido');
+                .setPlaceholder('Selecione o(s) oficial(is) acusado(s)/envolvido(s)')
+                .setMinValues(1)
+                .setMaxValues(10);
 
             const nextBtn = new ButtonBuilder()
                 .setCustomId('ia:step2')
@@ -88,8 +90,8 @@ module.exports = {
                 .setTitle('🔍 Nova Investigação Interna')
                 .setDescription(
                     '**Etapa 1 de 3** — Identificação\n\n' +
-                    'Selecione a **origem** da investigação e o **oficial acusado/envolvido**.\n' +
-                    'Clique em **Continuar** quando estiver pronto.'
+                    'Selecione a **origem** da investigação e o(s) **oficial(is) acusado(s)/envolvido(s)**.\n' +
+                    'Você pode selecionar até 10 oficiais. Clique em **Continuar** quando estiver pronto.'
                 );
 
             return interaction.reply({
