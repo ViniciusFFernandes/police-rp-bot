@@ -233,6 +233,33 @@ module.exports = {
                 return renderShiftsPage(interaction, targetId, page);
             }
 
+            // ── Turnos em Andamento ───────────────────────────────────
+            if (action === 'active_shifts') {
+                await interaction.deferReply({ ephemeral: true });
+
+                const shifts = await shiftRepo.findAllActiveByGuild(interaction.guildId);
+
+                if (shifts.length === 0) {
+                    return interaction.editReply({ content: '✅ Nenhum turno ativo no momento.' });
+                }
+
+                const STATUS_ICON = { active: '🟢', paused: '🟡' };
+                const lines = shifts.map(s => {
+                    const icon  = STATUS_ICON[s.status] || '⚪';
+                    const since = formatTimestamp(s.started_at);
+                    return `${icon} **${s.callsign}** — <@${s.user_discord_id}> — desde ${since}`;
+                });
+
+                const embed = new EmbedBuilder()
+                    .setColor(COLOR.INFO)
+                    .setTitle('🚔 Turnos Ativos')
+                    .setDescription(lines.join('\n'))
+                    .setFooter({ text: `${shifts.length} turno(s) ativo(s) · ${interaction.guild.name}` })
+                    .setTimestamp();
+
+                return interaction.editReply({ embeds: [embed] });
+            }
+
             // ── Arsenal — passo 1: selecionar oficial ─────────────────
             if (action === 'history_arsenal') {
                 return interaction.reply({

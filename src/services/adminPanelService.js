@@ -21,11 +21,12 @@ function buildAdminPanelEmbed() {
             { name: '📊 Resumo de Oficial',       value: 'Exibe estatísticas gerais de turnos e armamentos.',              inline: true },
             { name: '📋 Histórico de Turnos',     value: 'Lista os últimos turnos encerrados do oficial.',                 inline: true },
             { name: '🗄️ Arsenal de Oficial',      value: 'Exibe o arsenal completo com histórico de extravios.',           inline: true },
+            { name: '🚔 Turnos em Andamento',     value: 'Lista todos os turnos ativos no servidor no momento.',           inline: true },
         );
 }
 
 function buildAdminPanelComponents() {
-    const row = new ActionRowBuilder().addComponents(
+    const row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('adminpanel:profile_define')
             .setLabel('Definir Perfil')
@@ -47,7 +48,14 @@ function buildAdminPanelComponents() {
             .setEmoji('🗄️')
             .setStyle(ButtonStyle.Secondary),
     );
-    return [row];
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('adminpanel:active_shifts')
+            .setLabel('Turnos em Andamento')
+            .setEmoji('🚔')
+            .setStyle(ButtonStyle.Secondary),
+    );
+    return [row1, row2];
 }
 
 async function refresh(guild) {
