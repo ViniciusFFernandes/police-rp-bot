@@ -81,10 +81,7 @@ module.exports = {
                 const preview = district && callsignNum ? buildCallsign(district, unit, callsignNum) : unit;
 
                 return interaction.update({
-                    content: interaction.message.content.replace(
-                        /`[^`]+`/,
-                        `\`${preview}\``
-                    ),
+                    content: interaction.message.content,
                     components: interaction.message.components.map(row => {
                         const rebuilt = ActionRowBuilder.from(row);
                         rebuilt.components = row.components.map(c => {

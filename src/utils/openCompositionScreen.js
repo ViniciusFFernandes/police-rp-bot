@@ -97,7 +97,7 @@ async function openCompositionScreen(interaction) {
 
     const content =
         `🚔 **Montagem da Unidade Operacional**\n` +
-        `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}** → \`${previewCallsign}\`\n\n` +
+        `📍 Distrito: **${district}** · 📟 Callsign: **${callsignNum}**\n\n` +
         `Você será o **responsável** (motorista/líder).\n` +
         notes.join('\n');
 
