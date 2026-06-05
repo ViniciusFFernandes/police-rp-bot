@@ -222,7 +222,7 @@ module.exports = {
 
             const collectionMsgId = pending.collectionMsgId;
             const userMessages    = collectionMsgId
-                ? (await interaction.channel.messages.fetch({ after: collectionMsgId, limit: 50 }))
+                ? (await interaction.channel.messages.fetch({ after: collectionMsgId, limit: 100 }))
                       .filter(m => m.author.id === openerId && !m.author.bot)
                 : new Map();
 
@@ -237,7 +237,9 @@ module.exports = {
 
             const persistentUrls    = [];
             const evidenceChannelId = await guildConfigRepo.get(interaction.guildId, 'sr_evidence_channel_id');
-            const evChannel         = evidenceChannelId ? interaction.guild.channels.cache.get(evidenceChannelId) : null;
+            const evChannel         = evidenceChannelId
+                ? (interaction.guild.channels.cache.get(evidenceChannelId) ?? await interaction.guild.channels.fetch(evidenceChannelId).catch(() => null))
+                : null;
 
             if (evChannel && attachmentFiles.length > 0) {
                 const report = await srRepo.findById(rId, interaction.guildId);

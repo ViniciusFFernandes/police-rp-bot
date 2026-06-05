@@ -29,12 +29,16 @@ async function handleButton(interaction) {
     try {
         await handler.execute(interaction);
     } catch (err) {
-        logger.error(`Erro no button handler: ${interaction.customId}`, { error: err.message });
+        logger.error(`Erro no button handler: ${interaction.customId}`, { error: err.message, stack: err.stack });
         const reply = { content: '❌ Erro ao processar ação.', ephemeral: true };
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp(reply);
-        } else {
-            await interaction.reply(reply);
+        try {
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp(reply);
+            } else {
+                await interaction.reply(reply);
+            }
+        } catch (replyErr) {
+            logger.warn(`Não foi possível responder ao erro do botão: ${interaction.customId}`, { error: replyErr.message });
         }
     }
 }
