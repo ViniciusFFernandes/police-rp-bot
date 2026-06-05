@@ -33,7 +33,8 @@ function buildBoardEmbed(guild, profiles) {
     for (const [district, members] of byDistrict) {
         const lines = members.map(p => {
             const badge    = p.badge_num ? `#${p.badge_num.padStart(4, '0')}`.padEnd(BADGE_W) : '———'.padEnd(BADGE_W);
-            const callsign = p.callsign_num.padStart(3, '0').padEnd(CSN_W);
+            const csDisplay = p.callsign_num.toLowerCase() === 'trainee' ? 'TRN' : p.callsign_num.padStart(3, '0');
+            const callsign = csDisplay.padEnd(CSN_W);
             const raw      = p.display_name || '—';
             const name     = raw.includes(' | ') ? raw.split(' | ').slice(1).join(' | ') : raw;
             return `${badge}${callsign}${name.slice(0, 16)}`;
