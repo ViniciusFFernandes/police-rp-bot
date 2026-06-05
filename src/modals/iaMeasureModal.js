@@ -51,7 +51,9 @@ module.exports = {
                 fields.push({ name: '⏱️ Duração / Prazo', value: duration, inline: true });
             }
 
-            fields.push({ name: '🔫 Entrega de Armamento', value: pending.weaponSurrender === 'yes' ? '✅ Sim — oficial deve entregar armamento' : '❌ Não necessário', inline: false });
+            if (pending.weaponSurrender === 'yes') {
+                fields.push({ name: '🔫 Entrega de Armamento', value: `<@${targetId}>, por gentileza entregue seus armamentos a um oficial da AI assim que possível.`, inline: false });
+            }
             fields.push({ name: '📝 Descrição / Motivo', value: description, inline: false });
             fields.push({ name: '🕐 Data/Hora', value: formatTimestamp(new Date()), inline: true });
 
