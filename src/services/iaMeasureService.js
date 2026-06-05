@@ -84,7 +84,8 @@ async function postBoard(guild, measure) {
     const channelId = await guildConfigRepo.get(guild.id, 'ia_measures_channel_id');
     if (!channelId) return;
 
-    const channel = guild.channels.cache.get(channelId);
+    const channel = guild.channels.cache.get(channelId)
+        ?? await guild.channels.fetch(channelId).catch(() => null);
     if (!channel) return;
 
     const embed      = buildBoardEmbed(measure);
@@ -97,7 +98,8 @@ async function postBoard(guild, measure) {
 async function refreshBoard(guild, measure) {
     if (!measure.board_message_id || !measure.board_channel_id) return;
 
-    const channel = guild.channels.cache.get(measure.board_channel_id);
+    const channel = guild.channels.cache.get(measure.board_channel_id)
+        ?? await guild.channels.fetch(measure.board_channel_id).catch(() => null);
     if (!channel) return;
 
     try {
