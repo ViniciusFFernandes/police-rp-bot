@@ -74,6 +74,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde o painel administrativo para supervisores é publicado',
     },
+    ia_panel_channel_id: {
+        label: 'Canal do Painel de Assuntos Internos',
+        emoji: '🔍',
+        type: 'channel',
+        description: 'Canal onde o painel de IA com botões de ação é publicado',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

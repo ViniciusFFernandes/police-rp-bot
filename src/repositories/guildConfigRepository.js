@@ -16,6 +16,8 @@ const VALID_KEYS = [
     'panel_message_id',         // interno — ID da mensagem persistente do painel
     'admin_panel_channel_id',
     'admin_panel_message_id',   // interno — ID da mensagem persistente do painel admin
+    'ia_panel_channel_id',
+    'ia_panel_message_id',      // interno — ID da mensagem persistente do painel de IA
 ];
 
 async function get(guildId, key) {

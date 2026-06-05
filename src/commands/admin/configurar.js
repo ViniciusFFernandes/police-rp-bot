@@ -7,6 +7,7 @@ const guildConfigRepo       = require('../../repositories/guildConfigRepository'
 const callsignBoardService  = require('../../services/callsignBoardService');
 const panelService          = require('../../services/panelService');
 const adminPanelService     = require('../../services/adminPanelService');
+const iaPanelService        = require('../../services/iaPanelService');
 const { isConfigManager, isAdmin } = require('../../utils/permissions');
 
 module.exports = {
@@ -86,6 +87,16 @@ module.exports = {
         .addSubcommand(sub =>
             sub.setName('canal-painel-admin')
                 .setDescription('Canal onde o painel administrativo para supervisores é publicado')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-painel-ia')
+                .setDescription('Canal onde o painel de Assuntos Internos é publicado')
                 .addChannelOption(opt =>
                     opt.setName('canal')
                         .setDescription('Selecione o canal')
@@ -195,6 +206,7 @@ module.exports = {
             'canal-ia':         'ia_channel_id',
             'canal-painel':       'panel_channel_id',
             'canal-painel-admin': 'admin_panel_channel_id',
+            'canal-painel-ia':    'ia_panel_channel_id',
         };
 
         if (KEY_MAP[sub]) {
@@ -225,6 +237,14 @@ module.exports = {
                 await adminPanelService.refresh(interaction.guild);
                 return interaction.editReply({
                     content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel administrativo foi publicado nesse canal.`,
+                });
+            }
+
+            if (sub === 'canal-painel-ia') {
+                await guildConfigRepo.set(guildId, 'ia_panel_message_id', null);
+                await iaPanelService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel de Assuntos Internos foi publicado nesse canal.`,
                 });
             }
 
