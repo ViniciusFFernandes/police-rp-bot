@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, UserSelectMenuBuilder } = require('discord.js');
 const shiftService = require('../services/shiftService');
 const pendingComposition = require('../utils/pendingComposition');
 const { requireConfig } = require('../utils/configGuard');
@@ -90,7 +90,11 @@ module.exports = {
                         rebuilt.components = row.components.map(c => {
                             if (c.customId === 'shiftcompose:confirm')
                                 return ButtonBuilder.from(c).setDisabled(false);
-                            return c;
+                            if (c.type === 3) // STRING_SELECT
+                                return StringSelectMenuBuilder.from(c);
+                            if (c.type === 5) // USER_SELECT
+                                return UserSelectMenuBuilder.from(c);
+                            return ButtonBuilder.from(c);
                         });
                         return rebuilt;
                     }),

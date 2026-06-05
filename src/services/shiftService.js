@@ -101,7 +101,8 @@ async function startShift(interaction, cfg, { callsign, vehiclePrefix, additiona
             permissionOverwrites: [
                 {
                     id: guild.id,
-                    allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.ViewChannel],
+                    allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.ViewChannel],
+                    deny: [PermissionFlagsBits.Speak],
                 },
             ],
         });

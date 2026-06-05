@@ -24,12 +24,14 @@ function buildBoardEmbed(guild, profiles) {
         byDistrict.get(p.district).push(p);
     }
 
+    const BADGE_W  = 10;
+    const CSN_W    = 6;
+    const header   = `${'DISTINT'.padEnd(BADGE_W)}${'CSN'.padEnd(CSN_W)}OFICIAL`;
+    const SEP      = '-'.repeat(header.length);
+    const CHUNK    = 25; // oficiais por field para não estourar 1024 chars
+
     for (const [district, members] of byDistrict) {
-        const BADGE_W = 10;
-        const CSN_W   = 6;
-        const header  = `${'DISTINT'.padEnd(BADGE_W)}${'CSN'.padEnd(CSN_W)}OFICIAL`;
-        const SEP     = '-'.repeat(header.length);
-        const lines   = members.map(p => {
+        const lines = members.map(p => {
             const badge    = p.badge_num ? `#${p.badge_num.padStart(4, '0')}`.padEnd(BADGE_W) : '———'.padEnd(BADGE_W);
             const callsign = p.callsign_num.padEnd(CSN_W);
             const raw      = p.display_name || '—';
@@ -37,11 +39,16 @@ function buildBoardEmbed(guild, profiles) {
             return `${badge}${callsign}${name.slice(0, 16)}`;
         });
 
-        embed.addFields({
-            name: `🗺️ Distrito ${district}`,
-            value: `\`\`\`\n${header}\n${SEP}\n${lines.join('\n')}\n\`\`\``,
-            inline: false,
-        });
+        const totalParts = Math.ceil(lines.length / CHUNK);
+        for (let i = 0; i < totalParts; i++) {
+            const chunk     = lines.slice(i * CHUNK, (i + 1) * CHUNK);
+            const partLabel = totalParts > 1 ? ` · ${i + 1}/${totalParts}` : '';
+            embed.addFields({
+                name: `🗺️ Distrito ${district}${partLabel}`,
+                value: `\`\`\`\n${header}\n${SEP}\n${chunk.join('\n')}\n\`\`\``,
+                inline: false,
+            });
+        }
     }
 
     return embed;
