@@ -62,6 +62,18 @@ const CONFIG_META = {
         type: 'roles',
         description: 'Somente esses cargos podem usar o bot. Se vazio, todos têm acesso.',
     },
+    panel_channel_id: {
+        label: 'Canal do Painel Operacional',
+        emoji: '🚔',
+        type: 'channel',
+        description: 'Canal onde o painel operacional com botões de ação é publicado',
+    },
+    admin_panel_channel_id: {
+        label: 'Canal do Painel Administrativo',
+        emoji: '🛡️',
+        type: 'channel',
+        description: 'Canal onde o painel administrativo para supervisores é publicado',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

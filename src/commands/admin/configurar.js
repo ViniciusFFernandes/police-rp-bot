@@ -6,6 +6,7 @@ const guildConfigService    = require('../../services/guildConfigService');
 const guildConfigRepo       = require('../../repositories/guildConfigRepository');
 const callsignBoardService  = require('../../services/callsignBoardService');
 const panelService          = require('../../services/panelService');
+const adminPanelService     = require('../../services/adminPanelService');
 const { isConfigManager, isAdmin } = require('../../utils/permissions');
 
 module.exports = {
@@ -75,6 +76,16 @@ module.exports = {
         .addSubcommand(sub =>
             sub.setName('canal-painel')
                 .setDescription('Canal onde o painel operacional com botões de ação é publicado')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-painel-admin')
+                .setDescription('Canal onde o painel administrativo para supervisores é publicado')
                 .addChannelOption(opt =>
                     opt.setName('canal')
                         .setDescription('Selecione o canal')
@@ -182,7 +193,8 @@ module.exports = {
             'categoria-voz':    'voice_category_id',
             'canal-callsign':   'callsign_channel_id',
             'canal-ia':         'ia_channel_id',
-            'canal-painel':     'panel_channel_id',
+            'canal-painel':       'panel_channel_id',
+            'canal-painel-admin': 'admin_panel_channel_id',
         };
 
         if (KEY_MAP[sub]) {
@@ -205,6 +217,14 @@ module.exports = {
                 await panelService.refresh(interaction.guild);
                 return interaction.editReply({
                     content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel operacional foi publicado nesse canal.`,
+                });
+            }
+
+            if (sub === 'canal-painel-admin') {
+                await guildConfigRepo.set(guildId, 'admin_panel_message_id', null);
+                await adminPanelService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel administrativo foi publicado nesse canal.`,
                 });
             }
 
