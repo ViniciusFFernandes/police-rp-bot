@@ -6,21 +6,25 @@ const { canManageShift } = require('../utils/permissions');
 const logger = require('../utils/logger');
 
 async function resolveShift(interaction) {
-    const dbUser = await userRepo.findByDiscordId(interaction.user.id);
+    // Prioriza o turno vinculado à embed onde o botão foi clicado.
+    // Isso evita que um supervisor em turno ativo acidentalmente feche o seu
+    // próprio turno ao clicar nos botões da embed de outro oficial.
+    const managed = await shiftRepo.findByEmbedMessage(interaction.message.id, interaction.guildId);
+    if (managed) {
+        const allowed = await canManageShift(interaction, managed.user_discord_id);
+        if (!allowed) return { error: 'Você não tem permissão para gerenciar este turno.' };
+        return { shift: managed, ownerDiscordId: managed.user_discord_id };
+    }
 
+    // Fallback: embed sem turno vinculado (ex: embed_message_id não gravado).
+    // Nesse caso usa o turno ativo do próprio usuário.
+    const dbUser = await userRepo.findByDiscordId(interaction.user.id);
     if (dbUser) {
         const shift = await shiftRepo.findActiveByUser(dbUser.id, interaction.guildId);
         if (shift) return { shift, ownerDiscordId: interaction.user.id };
     }
 
-    // Supervisor atuando pela embed de outro oficial
-    const managed = await shiftRepo.findByEmbedMessage(interaction.message.id, interaction.guildId);
-    if (!managed) return { error: 'Nenhum turno ativo vinculado a esta mensagem.' };
-
-    const allowed = await canManageShift(interaction, managed.user_discord_id);
-    if (!allowed) return { error: 'Você não tem permissão para gerenciar este turno.' };
-
-    return { shift: managed, ownerDiscordId: managed.user_discord_id };
+    return { error: 'Nenhum turno ativo vinculado a esta mensagem.' };
 }
 
 module.exports = {

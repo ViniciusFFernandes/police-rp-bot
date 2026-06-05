@@ -53,29 +53,30 @@ function buildBoardEmbed(measure) {
 }
 
 function buildBoardButtons(measure) {
-    if (measure.status === 'completed') return [];
+    const isPending    = measure.status === 'pending';
+    const isInProgress = measure.status === 'in_progress';
+    const isCompleted  = measure.status === 'completed';
 
-    const row = new ActionRowBuilder();
-
-    if (measure.status === 'pending') {
-        row.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`iameasure:in_progress:${measure.id}`)
-                .setLabel('Marcar Em Andamento')
-                .setEmoji('🔵')
-                .setStyle(ButtonStyle.Primary),
-        );
-    }
-
-    if (measure.status === 'in_progress') {
-        row.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`iameasure:completed:${measure.id}`)
-                .setLabel('Finalizar Medida')
-                .setEmoji('✅')
-                .setStyle(ButtonStyle.Success),
-        );
-    }
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`iameasure:pending:${measure.id}`)
+            .setLabel('Pendente')
+            .setEmoji('🟡')
+            .setStyle(isPending ? ButtonStyle.Secondary : ButtonStyle.Primary)
+            .setDisabled(isPending),
+        new ButtonBuilder()
+            .setCustomId(`iameasure:in_progress:${measure.id}`)
+            .setLabel('Em Andamento')
+            .setEmoji('🔵')
+            .setStyle(isInProgress ? ButtonStyle.Secondary : ButtonStyle.Primary)
+            .setDisabled(isInProgress),
+        new ButtonBuilder()
+            .setCustomId(`iameasure:completed:${measure.id}`)
+            .setLabel('Finalizada')
+            .setEmoji('✅')
+            .setStyle(isCompleted ? ButtonStyle.Secondary : ButtonStyle.Success)
+            .setDisabled(isCompleted),
+    );
 
     return [row];
 }

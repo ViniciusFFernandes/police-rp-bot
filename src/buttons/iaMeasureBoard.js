@@ -22,7 +22,7 @@ module.exports = {
                 return interaction.reply({ content: '❌ Medida não encontrada.', ephemeral: true });
             }
 
-            const STATUS_MAP = { in_progress: 'in_progress', completed: 'completed' };
+            const STATUS_MAP = { pending: 'pending', in_progress: 'in_progress', completed: 'completed' };
             const newStatus  = STATUS_MAP[action];
             if (!newStatus) return;
 
