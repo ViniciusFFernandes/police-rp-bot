@@ -4,6 +4,9 @@ const {
     TextInputBuilder,
     TextInputStyle,
     StringSelectMenuBuilder,
+    UserSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     EmbedBuilder,
 } = require('discord.js');
 const userRepo            = require('../repositories/userRepository');
@@ -12,10 +15,17 @@ const officialWeaponRepo  = require('../repositories/officialWeaponRepository');
 const weaponRepo          = require('../repositories/weaponRepository');
 const shiftRepo           = require('../repositories/shiftRepository');
 const guildConfigRepo     = require('../repositories/guildConfigRepository');
+const pendingSR           = require('../utils/pendingSR');
 const { isSupervisor, isAdmin } = require('../utils/permissions');
 const { formatTimestamp } = require('../utils/time');
 const { COLOR }           = require('../utils/embeds');
 const logger              = require('../utils/logger');
+
+const SR_TYPE_OPTIONS = [
+    { label: '🟦 Relatório de Ocorrência',   value: 'ocorrencia',          description: 'Ocorrências atendidas em campo' },
+    { label: '🟩 Relatório de Prisão/Captura', value: 'prisao',            description: 'Registro de prisão ou captura de suspeito' },
+    { label: '🟥 Crime Não Resolvido',         value: 'crime_nao_resolvido', description: 'Crime em aberto / em investigação' },
+];
 
 module.exports = {
     customId: 'panel',
@@ -157,6 +167,47 @@ module.exports = {
                     .setTimestamp();
 
                 return interaction.editReply({ embeds: [embed] });
+            }
+
+            if (action === 'open_report') {
+                pendingSR.clear(interaction.guildId, interaction.user.id);
+
+                const typeSelect = new StringSelectMenuBuilder()
+                    .setCustomId('sr:type')
+                    .setPlaceholder('Selecione o tipo de relatório')
+                    .addOptions(SR_TYPE_OPTIONS);
+
+                const officersSelect = new UserSelectMenuBuilder()
+                    .setCustomId('sr:officers')
+                    .setPlaceholder('Outros oficiais envolvidos (opcional)')
+                    .setMinValues(0)
+                    .setMaxValues(10);
+
+                const nextBtn = new ButtonBuilder()
+                    .setCustomId('sr:step2')
+                    .setLabel('Continuar →')
+                    .setStyle(ButtonStyle.Primary)
+                    .setEmoji('📋');
+
+                const embed = new EmbedBuilder()
+                    .setColor(COLOR.INFO)
+                    .setTitle('📋 Novo Relatório de Serviço')
+                    .setDescription(
+                        '**Etapa 1 de 2** — Identificação\n\n' +
+                        `Você (<@${interaction.user.id}>) será o **responsável** pelo relatório.\n\n` +
+                        'Selecione o **tipo** de relatório e, se houver, outros oficiais envolvidos.\n' +
+                        'Clique em **Continuar** quando estiver pronto.'
+                    );
+
+                return interaction.reply({
+                    embeds: [embed],
+                    components: [
+                        new ActionRowBuilder().addComponents(typeSelect),
+                        new ActionRowBuilder().addComponents(officersSelect),
+                        new ActionRowBuilder().addComponents(nextBtn),
+                    ],
+                    ephemeral: true,
+                });
             }
 
             if (action === 'profile_view') {

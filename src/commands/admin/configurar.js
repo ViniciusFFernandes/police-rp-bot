@@ -195,6 +195,36 @@ module.exports = {
                             { name: 'Remover',   value: 'remove' },
                         )
                 )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-relatorios-sr')
+                .setDescription('Canal onde os relatórios de serviço (ocorrências, prisões) são publicados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-provas-sr')
+                .setDescription('Canal onde os arquivos de provas dos relatórios de serviço são arquivados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('categoria-sr')
+                .setDescription('Categoria onde os canais temporários de coleta de provas de SR são criados')
+                .addChannelOption(opt =>
+                    opt.setName('categoria')
+                        .setDescription('Selecione a categoria')
+                        .addChannelTypes(ChannelType.GuildCategory)
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
@@ -229,10 +259,13 @@ module.exports = {
             'canal-painel':       'panel_channel_id',
             'canal-painel-admin': 'admin_panel_channel_id',
             'canal-painel-ia':    'ia_panel_channel_id',
+            'canal-relatorios-sr': 'sr_channel_id',
+            'canal-provas-sr':     'sr_evidence_channel_id',
+            'categoria-sr':        'sr_category_id',
         };
 
         if (KEY_MAP[sub]) {
-            const optionName = (sub === 'categoria-voz' || sub === 'categoria-ia') ? 'categoria' : 'canal';
+            const optionName = (sub === 'categoria-voz' || sub === 'categoria-ia' || sub === 'categoria-sr') ? 'categoria' : 'canal';
             const channel = interaction.options.getChannel(optionName);
             const meta = await guildConfigService.setChannel(guildId, KEY_MAP[sub], channel);
 

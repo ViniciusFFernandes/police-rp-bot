@@ -21,6 +21,7 @@ function buildPanelEmbed() {
             { name: '🗄️ Ver Arsenal',      value: 'Lista suas armas ativas.',                               inline: true },
             { name: '🚨 Extravio de Arma', value: 'Registra o extravio de uma arma fora de turno.',        inline: true },
             { name: '👮 Ver Perfil',       value: 'Exibe seu perfil operacional (distrito, callsign etc.).', inline: true },
+            { name: '📋 Abrir Relatório',  value: 'Abre um novo relatório de ocorrência, prisão ou crime.', inline: true },
         );
 }
 
@@ -47,7 +48,16 @@ function buildPanelComponents() {
             .setEmoji('👮')
             .setStyle(ButtonStyle.Secondary),
     );
-    return [row1];
+
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('panel:open_report')
+            .setLabel('Abrir Relatório')
+            .setEmoji('📋')
+            .setStyle(ButtonStyle.Success),
+    );
+
+    return [row1, row2];
 }
 
 async function refresh(guild) {

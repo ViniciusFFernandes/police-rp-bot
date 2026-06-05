@@ -20,6 +20,9 @@ const VALID_KEYS = [
     'admin_panel_message_id',   // interno — ID da mensagem persistente do painel admin
     'ia_panel_channel_id',
     'ia_panel_message_id',      // interno — ID da mensagem persistente do painel de IA
+    'sr_channel_id',            // canal onde os relatórios de serviço são publicados
+    'sr_evidence_channel_id',   // canal de arquivo de provas de serviço
+    'sr_category_id',           // categoria para canais temporários de provas de SR
 ];
 
 async function get(guildId, key) {
