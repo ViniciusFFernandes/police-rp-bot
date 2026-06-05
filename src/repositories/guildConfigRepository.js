@@ -10,6 +10,7 @@ const VALID_KEYS = [
     'callsign_channel_id',
     'callsign_message_id',   // interno — ID da mensagem persistente do quadro
     'ia_channel_id',
+    'ia_category_id',
     'ia_role_ids',
     'police_role_ids',
     'panel_channel_id',

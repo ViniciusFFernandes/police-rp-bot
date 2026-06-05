@@ -135,24 +135,46 @@ module.exports = {
             return createInvestigation(interaction, interaction.user.id, null);
         }
 
-        // ── Abre área de coleta de provas no canal de IA ─────────────
+        // ── Cria canal temporário de provas e aguarda envio ──────────
         if (action === 'evidence_add') {
             await interaction.deferUpdate();
 
-            const channelId = await guildConfigRepo.get(interaction.guildId, 'ia_channel_id');
-            const iaChannel = channelId ? interaction.guild.channels.cache.get(channelId) : null;
-
-            if (!iaChannel) {
+            const categoryId = await guildConfigRepo.get(interaction.guildId, 'ia_category_id');
+            if (!categoryId) {
                 return interaction.editReply({
-                    content: '❌ Canal de IA não configurado. Use `/configurar canal-ia` ou crie a investigação sem provas.',
+                    content: '❌ Categoria de IA não configurada. Use `/configurar categoria-ia` ou crie a investigação sem provas.',
                     components: [],
                 });
             }
 
-            const collectionMsg = await iaChannel.send({
+            const pending    = pendingIA.get(interaction.guildId, interaction.user.id);
+            const iaRoleIdsRaw = await guildConfigRepo.get(interaction.guildId, 'ia_role_ids');
+            const iaRoleIds    = iaRoleIdsRaw ? JSON.parse(iaRoleIdsRaw) : [];
+
+            // Gera número provisório de caso para o nome do canal
+            const nextNum     = await iaRepo.nextCaseNumber(interaction.guildId);
+            const channelName = `provas-${nextNum.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`;
+
+            // Permissões: só cargo de IA + o oficial que abriu
+            const permissionOverwrites = [
+                { id: interaction.guild.id, deny: ['ViewChannel'] },
+                { id: interaction.user.id,  allow: ['ViewChannel', 'SendMessages', 'AttachFiles'] },
+                ...iaRoleIds.map(id => ({ id, allow: ['ViewChannel', 'SendMessages', 'AttachFiles'] })),
+            ];
+
+            const provasChannel = await interaction.guild.channels.create({
+                name: channelName,
+                type: 0, // GuildText
+                parent: categoryId,
+                permissionOverwrites,
+                topic: `Canal temporário de coleta de provas — ${nextNum}`,
+            });
+
+            const collectionMsg = await provasChannel.send({
                 content:
                     `📎 <@${interaction.user.id}>, envie as **provas** aqui (imagens, arquivos ou links de vídeo).\n` +
-                    `Você pode enviar quantas mensagens precisar. Clique em **✅ Confirmar Provas** quando terminar.`,
+                    `Você pode enviar quantas mensagens precisar. Clique em **✅ Confirmar Provas** quando terminar.\n` +
+                    `⚠️ Este canal será **deletado automaticamente** após a confirmação.`,
                 components: [
                     new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
@@ -167,12 +189,16 @@ module.exports = {
                 ],
             });
 
-            // Guarda o ID da mensagem de coleta no pending para limpeza posterior
-            pendingIA.setStep2(interaction.guildId, interaction.user.id, { collectionMsgId: collectionMsg.id });
+            // Guarda ID do canal temporário e da mensagem de coleta no pending
+            pendingIA.setStep2(interaction.guildId, interaction.user.id, {
+                collectionMsgId:   collectionMsg.id,
+                provasChannelId:   provasChannel.id,
+                reservedCaseNumber: nextNum,
+            });
 
             return interaction.editReply({
                 content:
-                    `📎 Mensagem enviada no canal de IA (<#${iaChannel.id}>).\n` +
+                    `📎 Canal criado: <#${provasChannel.id}>\n` +
                     `Envie suas provas lá e clique em **✅ Confirmar Provas** quando terminar.`,
                 components: [],
             });
@@ -197,7 +223,7 @@ module.exports = {
                 return interaction.editReply({ content: '❌ Sessão expirada. A investigação precisará ser reaberta.' });
             }
 
-            // Coleta mensagens enviadas pelo oficial após a mensagem de coleta
+            // Coleta mensagens enviadas pelo oficial após a mensagem de coleta (no canal temporário)
             const collectionMsgId = pending.collectionMsgId;
             const userMessages    = collectionMsgId
                 ? (await interaction.channel.messages.fetch({ after: collectionMsgId, limit: 50 }))
@@ -213,14 +239,9 @@ module.exports = {
 
             await createInvestigation(interaction, openerId, evidence);
 
-            // Limpa mensagens do usuário + mensagem de coleta
-            for (const msg of userMessages.values()) {
-                await msg.delete().catch(() => {});
-            }
-            if (collectionMsgId) {
-                const colMsg = await interaction.channel.messages.fetch(collectionMsgId).catch(() => null);
-                if (colMsg) await colMsg.delete().catch(() => {});
-            }
+            // Deleta o canal temporário de provas
+            const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
+            if (provasChannel) await provasChannel.delete().catch(() => {});
         }
 
         // ── Cancela coleta de provas ──────────────────────────────────
@@ -237,15 +258,12 @@ module.exports = {
 
             await interaction.deferReply({ ephemeral: true });
 
-            const pending         = pendingIA.get(interaction.guildId, openerId);
-            const collectionMsgId = pending?.collectionMsgId;
-
-            if (collectionMsgId) {
-                const colMsg = await interaction.channel.messages.fetch(collectionMsgId).catch(() => null);
-                if (colMsg) await colMsg.delete().catch(() => {});
-            }
-
+            const pending = pendingIA.get(interaction.guildId, openerId);
             pendingIA.clear(interaction.guildId, openerId);
+
+            // Deleta o canal temporário de provas
+            const provasChannel = interaction.guild.channels.cache.get(pending?.provasChannelId);
+            if (provasChannel) await provasChannel.delete().catch(() => {});
 
             return interaction.editReply({
                 content: '❌ Coleta de provas cancelada. A investigação **não** foi criada.\nUse `/ia abrir` ou o painel de IA para reiniciar.',
@@ -265,7 +283,7 @@ async function createInvestigation(interaction, openerId, evidence) {
         }
 
         const profile    = await officialRepo.findByDiscordId(pending.involvedDiscordId, interaction.guildId);
-        const caseNumber = await iaRepo.nextCaseNumber(interaction.guildId);
+        const caseNumber = pending.reservedCaseNumber ?? await iaRepo.nextCaseNumber(interaction.guildId);
 
         const inv = await iaRepo.create({
             guildId:           interaction.guildId,

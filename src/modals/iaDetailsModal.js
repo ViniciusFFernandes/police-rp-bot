@@ -49,14 +49,14 @@ module.exports = {
             .setColor(COLOR.INFO)
             .setTitle('🔍 Nova Investigação Interna')
             .setDescription(
-                '**Etapa 3 de 3** — Descrição e Provas\n\n' +
+                '**Etapa 3 de 3** — Descrição\n\n' +
                 summaryLines + '\n\n' +
-                'Agora adicione a **descrição do ocorrido** e as **provas/evidências**.'
+                'Agora adicione a **descrição do ocorrido**. As provas serão solicitadas na etapa seguinte.'
             );
 
         const nextBtn = new ButtonBuilder()
             .setCustomId('ia:step3')
-            .setLabel('Adicionar Descrição e Provas →')
+            .setLabel('Adicionar Descrição →')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📝');
 

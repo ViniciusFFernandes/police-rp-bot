@@ -75,6 +75,16 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('categoria-ia')
+                .setDescription('Categoria onde os canais temporários de coleta de provas de IA são criados')
+                .addChannelOption(opt =>
+                    opt.setName('categoria')
+                        .setDescription('Selecione a categoria')
+                        .addChannelTypes(ChannelType.GuildCategory)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('canal-painel')
                 .setDescription('Canal onde o painel operacional com botões de ação é publicado')
                 .addChannelOption(opt =>
@@ -204,6 +214,7 @@ module.exports = {
             'categoria-voz':    'voice_category_id',
             'canal-callsign':   'callsign_channel_id',
             'canal-ia':         'ia_channel_id',
+            'categoria-ia':     'ia_category_id',
             'canal-painel':       'panel_channel_id',
             'canal-painel-admin': 'admin_panel_channel_id',
             'canal-painel-ia':    'ia_panel_channel_id',

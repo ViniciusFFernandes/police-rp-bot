@@ -50,6 +50,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde os quadros de investigações internas são publicados',
     },
+    ia_category_id: {
+        label: 'Categoria de Assuntos Internos',
+        emoji: '🔍',
+        type: 'category',
+        description: 'Categoria onde os canais temporários de coleta de provas são criados',
+    },
     ia_role_ids: {
         label: 'Cargos de Assuntos Internos',
         emoji: '🔍',
