@@ -155,10 +155,11 @@ module.exports = {
             const nextNum     = await iaRepo.nextCaseNumber(interaction.guildId);
             const channelName = `provas-${nextNum.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`;
 
-            // Permissões: só cargo de IA + o oficial que abriu
+            // Permissões: bot + cargo de IA + o oficial que abriu
             const permissionOverwrites = [
-                { id: interaction.guild.id, deny: ['ViewChannel'] },
-                { id: interaction.user.id,  allow: ['ViewChannel', 'SendMessages', 'AttachFiles'] },
+                { id: interaction.guild.id,          deny:  ['ViewChannel'] },
+                { id: interaction.client.user.id,    allow: ['ViewChannel', 'SendMessages', 'ManageMessages', 'ManageChannels'] },
+                { id: interaction.user.id,           allow: ['ViewChannel', 'SendMessages', 'AttachFiles'] },
                 ...iaRoleIds.map(id => ({ id, allow: ['ViewChannel', 'SendMessages', 'AttachFiles'] })),
             ];
 
