@@ -280,6 +280,7 @@ module.exports = {
             }
 
             if (sub === 'canal-painel') {
+                await deleteOldPanelMessage(interaction.guild, 'panel_message_id');
                 await guildConfigRepo.set(guildId, 'panel_message_id', null);
                 await panelService.refresh(interaction.guild);
                 return interaction.editReply({
@@ -288,6 +289,7 @@ module.exports = {
             }
 
             if (sub === 'canal-painel-admin') {
+                await deleteOldPanelMessage(interaction.guild, 'admin_panel_message_id');
                 await guildConfigRepo.set(guildId, 'admin_panel_message_id', null);
                 await adminPanelService.refresh(interaction.guild);
                 return interaction.editReply({
@@ -296,6 +298,7 @@ module.exports = {
             }
 
             if (sub === 'canal-painel-ia') {
+                await deleteOldPanelMessage(interaction.guild, 'ia_panel_message_id');
                 await guildConfigRepo.set(guildId, 'ia_panel_message_id', null);
                 await iaPanelService.refresh(interaction.guild);
                 return interaction.editReply({
@@ -353,3 +356,25 @@ module.exports = {
         }
     },
 };
+
+// Busca e deleta a mensagem de painel antiga antes de publicar uma nova
+async function deleteOldPanelMessage(guild, messageIdKey) {
+    try {
+        const msgId = await guildConfigRepo.get(guild.id, messageIdKey);
+        if (!msgId) return;
+
+        // Precisamos descobrir em qual canal está a mensagem — tentamos todos os canais de texto
+        for (const channel of guild.channels.cache.values()) {
+            if (channel.type !== 0) continue; // apenas GuildText
+            try {
+                const msg = await channel.messages.fetch(msgId);
+                await msg.delete();
+                return;
+            } catch {
+                // mensagem não está nesse canal — continua
+            }
+        }
+    } catch {
+        // silencioso — não bloqueia a atualização se falhar
+    }
+}
