@@ -41,15 +41,18 @@ async function collectEvidence({ guild, provasChannelId, collectionMsgId, opener
             : null;
 
         if (archiveChannel) {
-            // Envia em chunks de 10 (limite do Discord) e guarda link da mensagem
-            for (let i = 0; i < attachmentFiles.length; i += 10) {
-                const chunk = attachmentFiles.slice(i, i + 10);
+            // Envia em chunks de 10 (limite do Discord) e guarda link numerado da mensagem
+            const chunks = [];
+            for (let i = 0; i < attachmentFiles.length; i += 10) chunks.push(attachmentFiles.slice(i, i + 10));
+            const total = chunks.length;
+
+            for (let i = 0; i < chunks.length; i++) {
                 const sent = await archiveChannel.send({
                     content: i === 0 ? `📎 Provas — **${label}**` : null,
-                    files: chunk.map(f => f.url),
+                    files: chunks[i].map(f => f.url),
                 });
                 const msgLink = `https://discord.com/channels/${guild.id}/${archiveChannel.id}/${sent.id}`;
-                evidenceLines.push(msgLink);
+                evidenceLines.push(`[${i + 1}/${total}] ${msgLink}`);
             }
         } else {
             // Sem canal de arquivo: guarda URLs originais como fallback
