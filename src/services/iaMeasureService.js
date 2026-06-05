@@ -12,7 +12,7 @@ const TYPE_LABEL = {
 
 const STATUS_LABEL = {
     pending:     '🟡 Pendente',
-    in_progress: '🔵 Em Execução',
+    in_progress: '🔵 Em Andamento',
     completed:   '🟢 Finalizada',
 };
 
@@ -61,7 +61,7 @@ function buildBoardButtons(measure) {
         row.addComponents(
             new ButtonBuilder()
                 .setCustomId(`iameasure:in_progress:${measure.id}`)
-                .setLabel('Marcar Em Execução')
+                .setLabel('Marcar Em Andamento')
                 .setEmoji('🔵')
                 .setStyle(ButtonStyle.Primary),
         );
