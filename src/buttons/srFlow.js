@@ -224,8 +224,9 @@ module.exports = {
 
             await createReport(interaction, openerId, evidence);
 
+            // Deletar após responder — deletar antes invalida a interação
             const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
-            if (provasChannel) await provasChannel.delete().catch(() => {});
+            if (provasChannel) provasChannel.delete().catch(() => {});
         }
 
         // ── Cancela coleta de provas ──────────────────────────────────
@@ -245,12 +246,11 @@ module.exports = {
             const pending = pendingSR.get(interaction.guildId, openerId);
             pendingSR.clear(interaction.guildId, openerId);
 
-            const provasChannel = interaction.guild.channels.cache.get(pending?.provasChannelId);
-            if (provasChannel) await provasChannel.delete().catch(() => {});
-
-            return interaction.editReply({
+            await interaction.editReply({
                 content: '❌ Coleta de provas cancelada. O relatório **não** foi criado.',
             });
+            const provasChannel = interaction.guild.channels.cache.get(pending?.provasChannelId);
+            if (provasChannel) provasChannel.delete().catch(() => {});
         }
     },
 };

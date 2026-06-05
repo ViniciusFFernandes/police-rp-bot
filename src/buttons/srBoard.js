@@ -256,22 +256,21 @@ module.exports = {
             }
 
             const newEvidence = [...textParts, ...persistentUrls].join('\n');
+            pendingBoardEvidence.delete(`${interaction.guildId}:${rId}`);
+            const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
+
             if (!newEvidence) {
-                pendingBoardEvidence.delete(`${interaction.guildId}:${rId}`);
-                const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
-                if (provasChannel) await provasChannel.delete().catch(() => {});
-                return interaction.editReply({ content: '⚠️ Nenhuma prova foi enviada. Canal removido.' });
+                await interaction.editReply({ content: '⚠️ Nenhuma prova foi enviada. Canal removido.' });
+                if (provasChannel) provasChannel.delete().catch(() => {});
+                return;
             }
 
             await srRepo.appendEvidence(rId, interaction.guildId, newEvidence);
             const updated = await srRepo.findById(rId, interaction.guildId);
             await srService.refreshBoard(interaction.guild, updated);
 
-            pendingBoardEvidence.delete(`${interaction.guildId}:${rId}`);
-            const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
-            if (provasChannel) await provasChannel.delete().catch(() => {});
-
-            return interaction.editReply({ content: `✅ Provas adicionadas ao relatório **${updated.report_number}** com sucesso!` });
+            await interaction.editReply({ content: `✅ Provas adicionadas ao relatório **${updated.report_number}** com sucesso!` });
+            if (provasChannel) provasChannel.delete().catch(() => {});
         }
 
         // ── Cancelar coleta de provas adicionais ──────────────────────
@@ -292,10 +291,9 @@ module.exports = {
             const pending = pendingBoardEvidence.get(`${interaction.guildId}:${rId}`);
             pendingBoardEvidence.delete(`${interaction.guildId}:${rId}`);
 
+            await interaction.editReply({ content: '❌ Coleta de provas cancelada. Nenhuma prova foi adicionada.' });
             const provasChannel = interaction.guild.channels.cache.get(pending?.provasChannelId);
-            if (provasChannel) await provasChannel.delete().catch(() => {});
-
-            return interaction.editReply({ content: '❌ Coleta de provas cancelada. Nenhuma prova foi adicionada.' });
+            if (provasChannel) provasChannel.delete().catch(() => {});
         }
     },
 };

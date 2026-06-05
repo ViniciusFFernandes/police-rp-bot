@@ -269,9 +269,9 @@ module.exports = {
 
             await createInvestigation(interaction, openerId, evidence);
 
-            // Deleta o canal temporário de provas (arquivos já foram rehospedados)
+            // Deleta o canal temporário após responder (deletar antes invalida a interação)
             const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);
-            if (provasChannel) await provasChannel.delete().catch(() => {});
+            if (provasChannel) provasChannel.delete().catch(() => {});
         }
 
         // ── Cancela coleta de provas ──────────────────────────────────
@@ -291,13 +291,11 @@ module.exports = {
             const pending = pendingIA.get(interaction.guildId, openerId);
             pendingIA.clear(interaction.guildId, openerId);
 
-            // Deleta o canal temporário de provas
-            const provasChannel = interaction.guild.channels.cache.get(pending?.provasChannelId);
-            if (provasChannel) await provasChannel.delete().catch(() => {});
-
-            return interaction.editReply({
+            await interaction.editReply({
                 content: '❌ Coleta de provas cancelada. A investigação **não** foi criada.\nUse `/ia abrir` ou o painel de IA para reiniciar.',
             });
+            const provasChannel = interaction.guild.channels.cache.get(pending?.provasChannelId);
+            if (provasChannel) provasChannel.delete().catch(() => {});
         }
     },
 };
