@@ -9,9 +9,10 @@
  * @param {string}  opts.openerId        - Discord ID do oficial que enviou
  * @param {string|null} opts.archiveChannelId - canal de arquivo permanente
  * @param {string}  opts.label           - ex: "IA-2026-001" para identificar no arquivo
+ * @param {string|null} opts.existingEvidence - evidência já salva (para numerar continuamente)
  * @returns {Promise<string|null>}  string de evidências ou null se nada foi enviado
  */
-async function collectEvidence({ guild, provasChannelId, collectionMsgId, openerId, archiveChannelId, label }) {
+async function collectEvidence({ guild, provasChannelId, collectionMsgId, openerId, archiveChannelId, label, existingEvidence = null }) {
     const provasChannel = guild.channels.cache.get(provasChannelId)
         ?? await guild.channels.fetch(provasChannelId).catch(() => null);
 
@@ -41,10 +42,13 @@ async function collectEvidence({ guild, provasChannelId, collectionMsgId, opener
             : null;
 
         if (archiveChannel) {
-            // Envia em chunks de 10 (limite do Discord) e guarda link numerado da mensagem
+            // Conta links já existentes para continuar a numeração
+            const existingCount = existingEvidence
+                ? (existingEvidence.match(/^\[\d+\]/gm) ?? []).length
+                : 0;
+
             const chunks = [];
             for (let i = 0; i < attachmentFiles.length; i += 10) chunks.push(attachmentFiles.slice(i, i + 10));
-            const total = chunks.length;
 
             for (let i = 0; i < chunks.length; i++) {
                 const sent = await archiveChannel.send({
@@ -52,7 +56,7 @@ async function collectEvidence({ guild, provasChannelId, collectionMsgId, opener
                     files: chunks[i].map(f => f.url),
                 });
                 const msgLink = `https://discord.com/channels/${guild.id}/${archiveChannel.id}/${sent.id}`;
-                evidenceLines.push(`[${i + 1}/${total}] ${msgLink}`);
+                evidenceLines.push(`[${existingCount + i + 1}] ${msgLink}`);
             }
         } else {
             // Sem canal de arquivo: guarda URLs originais como fallback

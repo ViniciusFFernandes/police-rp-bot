@@ -231,6 +231,7 @@ module.exports = {
                 openerId,
                 archiveChannelId,
                 label:            report?.report_number ?? rId,
+                existingEvidence: report?.evidence ?? null,
             });
             pendingBoardEvidence.delete(`${interaction.guildId}:${rId}`);
             const provasChannel = interaction.guild.channels.cache.get(pending.provasChannelId);

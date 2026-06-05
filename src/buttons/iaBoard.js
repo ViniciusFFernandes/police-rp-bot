@@ -319,6 +319,7 @@ module.exports = {
                 openerId,
                 archiveChannelId,
                 label:            inv?.case_number ?? invIdFromBtn,
+                existingEvidence: inv?.evidence ?? null,
             });
 
             pendingBoardEvidence.delete(`${interaction.guildId}:${invIdFromBtn}`);
