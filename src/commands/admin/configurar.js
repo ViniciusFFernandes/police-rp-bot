@@ -221,7 +221,7 @@ module.exports = {
         };
 
         if (KEY_MAP[sub]) {
-            const optionName = sub === 'categoria-voz' ? 'categoria' : 'canal';
+            const optionName = (sub === 'categoria-voz' || sub === 'categoria-ia') ? 'categoria' : 'canal';
             const channel = interaction.options.getChannel(optionName);
             const meta = await guildConfigService.setChannel(guildId, KEY_MAP[sub], channel);
 
