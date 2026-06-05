@@ -18,7 +18,7 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        const serial      = interaction.customId.split(':')[3];
+        const serial      = interaction.customId.split(':')[2];
         const observation = interaction.fields.getTextInputValue('observation')?.trim() || null;
         const guildId     = interaction.guildId;
 
