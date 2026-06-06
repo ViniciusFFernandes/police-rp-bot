@@ -58,7 +58,8 @@ module.exports = {
                 'Você pode enviar imagens, vídeos ou links. Um canal temporário será criado para o envio.'
             );
 
-        return interaction.reply({
+        // Substitui a mensagem original de seleção de tipo (fecha os menus de seleção)
+        return interaction.update({
             embeds: [embed],
             components: [
                 new ActionRowBuilder().addComponents(
@@ -72,7 +73,6 @@ module.exports = {
                         .setStyle(ButtonStyle.Secondary),
                 ),
             ],
-            ephemeral: true,
         });
     },
 };

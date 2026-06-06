@@ -8,6 +8,7 @@ const callsignBoardService  = require('../../services/callsignBoardService');
 const panelService          = require('../../services/panelService');
 const adminPanelService     = require('../../services/adminPanelService');
 const iaPanelService        = require('../../services/iaPanelService');
+const civilPanelService     = require('../../services/civilPanelService');
 const { isConfigManager, isAdmin } = require('../../utils/permissions');
 
 module.exports = {
@@ -235,6 +236,46 @@ module.exports = {
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true)
                 )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-painel-civil')
+                .setDescription('Canal onde o painel de denúncias para civis é publicado')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-denuncias-civis')
+                .setDescription('Canal onde a Corregedoria avalia as denúncias registradas por civis')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('categoria-denuncias-civis')
+                .setDescription('Categoria onde os canais temporários de coleta de provas de denúncias civis são criados')
+                .addChannelOption(opt =>
+                    opt.setName('categoria')
+                        .setDescription('Selecione a categoria')
+                        .addChannelTypes(ChannelType.GuildCategory)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-provas-denuncias-civis')
+                .setDescription('Canal onde os arquivos de provas das denúncias civis são arquivados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
@@ -273,10 +314,14 @@ module.exports = {
             'canal-provas-sr':     'sr_evidence_channel_id',
             'categoria-sr':        'sr_category_id',
             'canal-medidas-ia':    'ia_measures_channel_id',
+            'canal-painel-civil':     'civil_panel_channel_id',
+            'canal-denuncias-civis':  'civil_complaints_channel_id',
+            'categoria-denuncias-civis':     'civil_complaints_category_id',
+            'canal-provas-denuncias-civis':  'civil_evidence_channel_id',
         };
 
         if (KEY_MAP[sub]) {
-            const optionName = (sub === 'categoria-voz' || sub === 'categoria-ia' || sub === 'categoria-sr') ? 'categoria' : 'canal';
+            const optionName = (sub === 'categoria-voz' || sub === 'categoria-ia' || sub === 'categoria-sr' || sub === 'categoria-denuncias-civis') ? 'categoria' : 'canal';
             const channel = interaction.options.getChannel(optionName);
             const meta = await guildConfigService.setChannel(guildId, KEY_MAP[sub], channel);
 
@@ -314,6 +359,15 @@ module.exports = {
                 await iaPanelService.refresh(interaction.guild);
                 return interaction.editReply({
                     content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel de Assuntos Internos foi publicado nesse canal.`,
+                });
+            }
+
+            if (sub === 'canal-painel-civil') {
+                await deleteOldPanelMessage(interaction.guild, 'civil_panel_message_id');
+                await guildConfigRepo.set(guildId, 'civil_panel_message_id', null);
+                await civilPanelService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel de denúncias civis foi publicado nesse canal.`,
                 });
             }
 

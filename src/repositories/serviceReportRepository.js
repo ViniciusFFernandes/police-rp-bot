@@ -98,11 +98,13 @@ async function remove(id, guildId) {
     await db.query('DELETE FROM service_reports WHERE id = $1 AND guild_id = $2', [id, guildId]);
 }
 
-async function listByGuild(guildId, { status = null, openedByDiscordId = null } = {}) {
+async function listByGuild(guildId, { status = null, type = null, openedByDiscordId = null, involvedDiscordId = null } = {}) {
     const params = [guildId];
     let where = 'WHERE guild_id = $1';
     if (status)             { params.push(status);             where += ` AND status = $${params.length}`; }
+    if (type)               { params.push(type);               where += ` AND type = $${params.length}`; }
     if (openedByDiscordId)  { params.push(openedByDiscordId);  where += ` AND opened_by_discord_id = $${params.length}`; }
+    if (involvedDiscordId)  { params.push(`%"${involvedDiscordId}"%`); where += ` AND involved_discord_ids LIKE $${params.length}`; }
     const { rows } = await db.query(
         `SELECT * FROM service_reports ${where} ORDER BY opened_at DESC`,
         params

@@ -6,11 +6,13 @@ const {
     EmbedBuilder,
 } = require('discord.js');
 const pendingSR       = require('../utils/pendingSR');
+const pendingSRFilter = require('../utils/pendingSRFilter');
 const srRepo          = require('../repositories/serviceReportRepository');
 const srService       = require('../services/serviceReportService');
 const guildConfigRepo = require('../repositories/guildConfigRepository');
 const { COLOR }       = require('../utils/embeds');
 const { collectEvidence } = require('../utils/collectEvidence');
+const { formatTimestamp } = require('../utils/time');
 const logger          = require('../utils/logger');
 
 module.exports = {
@@ -19,6 +21,28 @@ module.exports = {
     async execute(interaction) {
         const parts  = interaction.customId.split(':');
         const action = parts[1];
+
+        // ── Consulta — filtros opcionais ─────────────────────────────
+        if (action === 'list_type') {
+            pendingSRFilter.set(interaction.guildId, interaction.user.id, { type: interaction.values[0] });
+            return interaction.deferUpdate();
+        }
+
+        if (action === 'list_involved') {
+            pendingSRFilter.set(interaction.guildId, interaction.user.id, { involvedDiscordId: interaction.values[0] });
+            return interaction.deferUpdate();
+        }
+
+        if (action === 'list_status') {
+            pendingSRFilter.set(interaction.guildId, interaction.user.id, { status: interaction.values[0] });
+            return interaction.deferUpdate();
+        }
+
+        if (action === 'list_search') {
+            await interaction.deferUpdate();
+            const filter = pendingSRFilter.get(interaction.guildId, interaction.user.id) || {};
+            return renderReportList(interaction, filter);
+        }
 
         // ── Seleção do tipo de relatório ─────────────────────────────
         if (action === 'type') {
@@ -277,4 +301,33 @@ async function createReport(interaction, openerId, evidence) {
         if (interaction.replied || interaction.deferred) return interaction.editReply(msg);
         return interaction.reply({ ...msg, ephemeral: true });
     }
+}
+
+// ── Helper: lista relatórios aplicando filtros opcionais ─────────────────────
+async function renderReportList(interaction, { type, involvedDiscordId, status }) {
+    const reports = await srRepo.listByGuild(interaction.guildId, { type, involvedDiscordId, status });
+
+    const filterParts = [];
+    if (type)              filterParts.push(`Tipo: **${srService.TYPE_LABEL[type] || type}**`);
+    if (involvedDiscordId) filterParts.push(`Envolvido: <@${involvedDiscordId}>`);
+    if (status)            filterParts.push(`Situação: **${srService.STATUS_LABEL[status] || status}**`);
+
+    const embed = new EmbedBuilder()
+        .setColor(COLOR.INFO)
+        .setTitle('🔎 Relatórios de Serviço')
+        .setDescription(
+            (filterParts.length ? `Filtros: ${filterParts.join(' • ')}\n\n` : 'Sem filtros — exibindo todos.\n\n') +
+            (reports.length === 0
+                ? 'Nenhum relatório encontrado com os filtros selecionados.'
+                : reports.slice(0, 15).map(r =>
+                    `**${r.report_number}** — ${srService.TYPE_LABEL[r.type] || r.type} • ${srService.STATUS_LABEL[r.status] || r.status}\n` +
+                    `👮 <@${r.opened_by_discord_id}> • 📅 ${formatTimestamp(r.opened_at)}`
+                  ).join('\n\n'))
+        );
+
+    if (reports.length > 15) {
+        embed.setFooter({ text: `Exibindo 15 de ${reports.length} relatórios encontrados.` });
+    }
+
+    return interaction.editReply({ embeds: [embed], components: [] });
 }

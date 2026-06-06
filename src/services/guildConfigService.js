@@ -116,6 +116,30 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde os alertas de punições e afastamentos de oficiais são enviados',
     },
+    civil_panel_channel_id: {
+        label: 'Canal do Painel Civil',
+        emoji: '📢',
+        type: 'channel',
+        description: 'Canal onde o painel de denúncias para civis é publicado',
+    },
+    civil_complaints_channel_id: {
+        label: 'Canal de Avaliação de Denúncias Civis',
+        emoji: '📝',
+        type: 'channel',
+        description: 'Canal onde a Corregedoria avalia as denúncias registradas por civis',
+    },
+    civil_complaints_category_id: {
+        label: 'Categoria de Provas de Denúncias Civis',
+        emoji: '📢',
+        type: 'channel',
+        description: 'Categoria onde os canais temporários de coleta de provas de denúncias civis são criados',
+    },
+    civil_evidence_channel_id: {
+        label: 'Canal de Arquivo de Provas Civis',
+        emoji: '📎',
+        type: 'channel',
+        description: 'Canal onde os arquivos de provas das denúncias civis são arquivados',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

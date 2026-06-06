@@ -22,6 +22,7 @@ function buildPanelEmbed() {
             { name: '🚨 Extravio de Arma', value: 'Registra o extravio de uma arma fora de turno.',        inline: true },
             { name: '👮 Ver Perfil',       value: 'Exibe seu perfil operacional (distrito, callsign etc.).', inline: true },
             { name: '📋 Abrir Relatório',  value: 'Abre um novo relatório de ocorrência, prisão ou crime.', inline: true },
+            { name: '🔎 Consultar Relatórios', value: 'Busca relatórios com filtros opcionais (tipo, envolvido, situação).', inline: true },
             { name: '🚔 Iniciar Turno',    value: 'Inicia um novo turno como unidade operacional.',          inline: true },
         );
 }
@@ -56,6 +57,11 @@ function buildPanelComponents() {
             .setLabel('Abrir Relatório')
             .setEmoji('📋')
             .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('panel:list_reports')
+            .setLabel('Consultar Relatórios')
+            .setEmoji('🔎')
+            .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId('panel:start_shift')
             .setLabel('Iniciar Turno')

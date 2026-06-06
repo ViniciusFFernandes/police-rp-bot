@@ -16,6 +16,7 @@ const weaponRepo          = require('../repositories/weaponRepository');
 const shiftRepo           = require('../repositories/shiftRepository');
 const guildConfigRepo     = require('../repositories/guildConfigRepository');
 const pendingSR                = require('../utils/pendingSR');
+const pendingSRFilter          = require('../utils/pendingSRFilter');
 const { openCompositionScreen } = require('../utils/openCompositionScreen');
 const { isSupervisor, isAdmin } = require('../utils/permissions');
 const { formatTimestamp } = require('../utils/time');
@@ -26,6 +27,13 @@ const SR_TYPE_OPTIONS = [
     { label: '🟦 Relatório de Ocorrência',   value: 'ocorrencia',          description: 'Ocorrências atendidas em campo' },
     { label: '🟩 Relatório de Prisão/Captura', value: 'prisao',            description: 'Registro de prisão ou captura de suspeito' },
     { label: '🟥 Crime Não Resolvido',         value: 'crime_nao_resolvido', description: 'Crime em aberto / em investigação' },
+];
+
+const SR_STATUS_OPTIONS = [
+    { label: '🟡 Em Análise', value: 'em_analise' },
+    { label: '🔵 Finalizado', value: 'finalizado' },
+    { label: '🟢 Resolvido',  value: 'resolvido' },
+    { label: '⚫ Arquivado',  value: 'arquivado' },
 ];
 
 module.exports = {
@@ -254,6 +262,49 @@ module.exports = {
                         new ActionRowBuilder().addComponents(typeSelect),
                         new ActionRowBuilder().addComponents(officersSelect),
                         new ActionRowBuilder().addComponents(nextBtn),
+                    ],
+                    ephemeral: true,
+                });
+            }
+
+            if (action === 'list_reports') {
+                pendingSRFilter.clear(interaction.guildId, interaction.user.id);
+
+                const typeSelect = new StringSelectMenuBuilder()
+                    .setCustomId('sr:list_type')
+                    .setPlaceholder('Filtrar por tipo (opcional)')
+                    .addOptions(SR_TYPE_OPTIONS);
+
+                const involvedSelect = new UserSelectMenuBuilder()
+                    .setCustomId('sr:list_involved')
+                    .setPlaceholder('Filtrar por envolvido (opcional)');
+
+                const statusSelect = new StringSelectMenuBuilder()
+                    .setCustomId('sr:list_status')
+                    .setPlaceholder('Filtrar por situação (opcional)')
+                    .addOptions(SR_STATUS_OPTIONS);
+
+                const searchBtn = new ButtonBuilder()
+                    .setCustomId('sr:list_search')
+                    .setLabel('Buscar')
+                    .setEmoji('🔎')
+                    .setStyle(ButtonStyle.Primary);
+
+                const embed = new EmbedBuilder()
+                    .setColor(COLOR.INFO)
+                    .setTitle('🔎 Consultar Relatórios de Serviço')
+                    .setDescription(
+                        'Todos os filtros abaixo são **opcionais** — escolha quantos quiser e clique em **Buscar**.\n' +
+                        'Se nenhum filtro for selecionado, todos os relatórios serão listados.'
+                    );
+
+                return interaction.reply({
+                    embeds: [embed],
+                    components: [
+                        new ActionRowBuilder().addComponents(typeSelect),
+                        new ActionRowBuilder().addComponents(involvedSelect),
+                        new ActionRowBuilder().addComponents(statusSelect),
+                        new ActionRowBuilder().addComponents(searchBtn),
                     ],
                     ephemeral: true,
                 });
