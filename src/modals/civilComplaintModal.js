@@ -6,15 +6,16 @@ module.exports = {
     customId: 'modal:civil_complaint',
 
     async execute(interaction) {
+        const citizenId   = interaction.fields.getTextInputValue('citizen_id').trim();
         const name        = interaction.fields.getTextInputValue('complainant_name').trim();
+        const phone       = interaction.fields.getTextInputValue('phone').trim() || null;
         const subject     = interaction.fields.getTextInputValue('subject').trim();
         const description = interaction.fields.getTextInputValue('description').trim();
 
-        const isAnonymous = name.length === 0;
-
         pendingComplaint.set(interaction.guildId, interaction.user.id, {
-            isAnonymous,
-            complainantName: isAnonymous ? null : name,
+            citizenId,
+            complainantName: name,
+            phone,
             subject,
             description,
         });

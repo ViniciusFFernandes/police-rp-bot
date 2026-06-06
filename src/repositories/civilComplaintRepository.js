@@ -16,20 +16,21 @@ async function nextComplaintNumber(guildId) {
 
 async function create(data) {
     const {
-        guildId, complaintNumber, isAnonymous,
-        complainantDiscordId, complainantName,
+        guildId, complaintNumber,
+        complainantDiscordId, complainantName, citizenId, phone,
         subject, description, evidence,
     } = data;
 
     const { rows } = await db.query(
         `INSERT INTO civil_complaints
          (guild_id, complaint_number, is_anonymous, complainant_discord_id, complainant_name,
-          subject, description, evidence)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          citizen_id, phone, subject, description, evidence)
+         VALUES ($1,$2,FALSE,$3,$4,$5,$6,$7,$8,$9)
          RETURNING *`,
         [
-            guildId, complaintNumber, isAnonymous,
-            complainantDiscordId || null, complainantName || null,
+            guildId, complaintNumber,
+            complainantDiscordId, complainantName,
+            citizenId || null, phone || null,
             subject || null, description || null, evidence || null,
         ]
     );

@@ -16,13 +16,9 @@ function buildReviewEmbed(complaint) {
         .setTitle(`📢 Denúncia Civil — ${complaint.complaint_number}`)
         .addFields(
             { name: 'Status',      value: STATUS_LABEL[complaint.status] || complaint.status, inline: true },
-            {
-                name: 'Denunciante',
-                value: complaint.is_anonymous
-                    ? '🕵️ Anônima'
-                    : `<@${complaint.complainant_discord_id}>${complaint.complainant_name ? ` (${complaint.complainant_name})` : ''}`,
-                inline: true,
-            },
+            { name: 'Denunciante', value: `<@${complaint.complainant_discord_id}> (${complaint.complainant_name || '—'})`, inline: true },
+            { name: 'CitizenID',   value: complaint.citizen_id || '—', inline: true },
+            { name: 'Telefone',    value: complaint.phone || '—', inline: true },
             { name: 'Assunto',     value: complaint.subject || '—' },
             { name: 'Descrição',   value: (complaint.description || '—').slice(0, 1024) },
         );

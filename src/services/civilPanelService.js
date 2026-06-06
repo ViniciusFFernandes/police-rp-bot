@@ -15,8 +15,7 @@ function buildCivilPanelEmbed() {
         .setDescription(
             'Use este painel para registrar uma denúncia sobre a conduta de um policial.\n' +
             'Sua denúncia será encaminhada à Corregedoria, que avaliará se uma investigação interna será aberta.\n\n' +
-            '⚠️ Você pode denunciar **se identificando** ou de forma **anônima**. ' +
-            'Denúncias anônimas não podem ser consultadas posteriormente, pois não ficam vinculadas ao seu usuário.'
+            '⚠️ A identificação (CitizenID e nome) é **obrigatória** para o registro da denúncia.'
         )
         .addFields(
             { name: '📢 Fazer Denúncia',     value: 'Abre o formulário para registrar uma nova denúncia.', inline: true },

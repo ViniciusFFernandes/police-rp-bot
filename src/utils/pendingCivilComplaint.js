@@ -17,7 +17,7 @@ function get(guildId, userId) {
 function set(guildId, userId, fields) {
     const k = key(guildId, userId);
     const existing = get(guildId, userId) || {
-        isAnonymous: false, complainantName: null, subject: null, description: null,
+        complainantName: null, citizenId: null, phone: null, subject: null, description: null,
         collectionMsgId: null, provasChannelId: null, reservedComplaintNumber: null,
     };
     const updated = { ...existing, ...fields, ts: Date.now() };

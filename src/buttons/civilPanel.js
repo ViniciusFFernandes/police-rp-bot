@@ -32,12 +32,26 @@ module.exports = {
                 .setCustomId('modal:civil_complaint')
                 .setTitle('Registrar Denúncia');
 
+            const citizenIdInput = new TextInputBuilder()
+                .setCustomId('citizen_id')
+                .setLabel('CitizenID')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(50);
+
             const nameInput = new TextInputBuilder()
                 .setCustomId('complainant_name')
-                .setLabel('Seu nome (deixe em branco para anônima)')
+                .setLabel('Seu nome')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(100);
+
+            const phoneInput = new TextInputBuilder()
+                .setCustomId('phone')
+                .setLabel('Telefone para contato (opcional)')
                 .setStyle(TextInputStyle.Short)
                 .setRequired(false)
-                .setMaxLength(100);
+                .setMaxLength(30);
 
             const subjectInput = new TextInputBuilder()
                 .setCustomId('subject')
@@ -54,7 +68,9 @@ module.exports = {
                 .setMaxLength(1500);
 
             modal.addComponents(
+                new ActionRowBuilder().addComponents(citizenIdInput),
                 new ActionRowBuilder().addComponents(nameInput),
+                new ActionRowBuilder().addComponents(phoneInput),
                 new ActionRowBuilder().addComponents(subjectInput),
                 new ActionRowBuilder().addComponents(descriptionInput),
             );
@@ -69,8 +85,7 @@ module.exports = {
             if (complaints.length === 0) {
                 return interaction.editReply({
                     content:
-                        '📂 Você ainda não possui denúncias identificadas registradas.\n' +
-                        '⚠️ Denúncias feitas anonimamente não aparecem aqui, pois não ficam vinculadas ao seu usuário.',
+                        '📂 Você ainda não possui denúncias registradas.',
                 });
             }
 
@@ -229,9 +244,10 @@ async function submitComplaint(interaction, authorId, evidence) {
         const complaint = await complaintRepo.create({
             guildId:               interaction.guildId,
             complaintNumber,
-            isAnonymous:           pending.isAnonymous,
-            complainantDiscordId:  pending.isAnonymous ? null : authorId,
+            complainantDiscordId:  authorId,
             complainantName:       pending.complainantName,
+            citizenId:             pending.citizenId,
+            phone:                 pending.phone,
             subject:               pending.subject,
             description:           pending.description,
             evidence,
@@ -241,12 +257,10 @@ async function submitComplaint(interaction, authorId, evidence) {
 
         await civilComplaintService.postReviewCard(interaction.guild, complaint);
 
-        const note = pending.isAnonymous
-            ? '🕵️ Sua denúncia foi registrada **anonimamente**. Como não está vinculada ao seu usuário, ela **não poderá ser consultada** posteriormente em "Minhas Denúncias".'
-            : `📂 Sua denúncia foi registrada e vinculada ao seu usuário. Você pode consultá-la depois em **Minhas Denúncias** pelo número **${complaintNumber}**.`;
-
         const msg = {
-            content: `✅ Denúncia **${complaintNumber}** registrada com sucesso e encaminhada à Corregedoria para avaliação.\n\n${note}`,
+            content:
+                `✅ Denúncia **${complaintNumber}** registrada com sucesso e encaminhada à Corregedoria para avaliação.\n` +
+                `📂 Você pode consultá-la depois em **Minhas Denúncias** pelo número **${complaintNumber}**.`,
             components: [],
         };
         if (interaction.replied || interaction.deferred) return interaction.editReply(msg);
