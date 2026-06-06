@@ -238,7 +238,7 @@ A configuração é feita inteiramente por **comandos slash**. Por padrão, apen
 /configurar-cargos cargo-supervisor @Comandante Adicionar
 ```
 
-Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, registrar extravios de qualquer arma e definir perfis de outros oficiais.
+Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, registrar extravios de qualquer arma e definir perfis de outros oficiais. A equipe de **Assuntos Internos** (cargo configurado em `/configurar-cargos cargo-ia`) tem essas mesmas permissões operacionais, mesmo sem possuir o cargo de supervisor.
 
 ### Passo 3 — Cargos gestores de configuração (opcional)
 
@@ -802,6 +802,8 @@ Aberto a qualquer membro do servidor (ouvidoria pública), salvo se um **cargo d
 /configurar canal-provas-ia   #provas-ia             ← arquivo permanente de provas
 /configurar-cargos cargo-ia @Assuntos Internos Adicionar
 ```
+
+> 💡 Quem possui o cargo de Assuntos Internos é equiparado a supervisor nas rotinas operacionais de gestão de oficiais: `/oficial definir`/`ver` (terceiros), Remover Callsign, pausar/retomar e encerrar turno alheio, `/arma extravio` de qualquer arma, `/historico`, `/turno listar`/`forcar-encerrar` e alteração de status de Relatório de Serviço.
 
 ### Abrir uma investigação — `/ia abrir` ou Painel de IA
 
