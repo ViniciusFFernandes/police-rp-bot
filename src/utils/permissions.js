@@ -37,6 +37,17 @@ async function isIAStaff(member) {
     return roles.some(roleId => member.roles.cache.has(roleId));
 }
 
+// Verifica se o membro pode usar o painel da Ouvidoria Civil (denúncias).
+// Cidadãos com o cargo configurado podem; oficiais (acesso ao bot) e admins também.
+// Se nenhum cargo de cidadão estiver configurado, qualquer membro pode usar.
+async function isCitizen(member) {
+    if (isAdmin(member)) return true;
+    if (await hasPoliceAccess(member)) return true;
+    const roles = await guildConfigRepo.getCitizenRoles(member.guild.id);
+    if (roles.length === 0) return true;
+    return roles.some(roleId => member.roles.cache.has(roleId));
+}
+
 async function canManageShift(interaction, shiftOwnerId) {
     const member = interaction.member;
     if (member.id === shiftOwnerId) return true;
@@ -45,4 +56,4 @@ async function canManageShift(interaction, shiftOwnerId) {
     return false;
 }
 
-module.exports = { isSupervisor, isAdmin, isConfigManager, isIAStaff, hasPoliceAccess, canManageShift };
+module.exports = { isSupervisor, isAdmin, isConfigManager, isIAStaff, hasPoliceAccess, isCitizen, canManageShift };

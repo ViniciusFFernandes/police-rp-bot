@@ -13,6 +13,7 @@ const guildConfigRepo = require('../repositories/guildConfigRepository');
 const pendingComplaint = require('../utils/pendingCivilComplaint');
 const { collectEvidence } = require('../utils/collectEvidence');
 const { COLOR } = require('../utils/embeds');
+const { isCitizen } = require('../utils/permissions');
 const logger = require('../utils/logger');
 
 const STATUS_LABEL = {
@@ -26,6 +27,13 @@ module.exports = {
 
     async execute(interaction) {
         const [, action] = interaction.customId.split(':');
+
+        if ((action === 'denunciar' || action === 'minhas') && !await isCitizen(interaction.member)) {
+            return interaction.reply({
+                content: '❌ Você não tem o cargo necessário para usar a Ouvidoria Civil.',
+                ephemeral: true,
+            });
+        }
 
         if (action === 'denunciar') {
             const modal = new ModalBuilder()

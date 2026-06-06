@@ -74,6 +74,12 @@ const CONFIG_META = {
         type: 'roles',
         description: 'Somente esses cargos podem usar o bot. Se vazio, todos têm acesso.',
     },
+    citizen_role_ids: {
+        label: 'Cargos de Cidadão (Ouvidoria)',
+        emoji: '🧑',
+        type: 'roles',
+        description: 'Cargos que podem registrar/consultar denúncias no painel civil, sem acesso às demais funções do bot.',
+    },
     panel_channel_id: {
         label: 'Canal do Painel Operacional',
         emoji: '🚔',
@@ -186,6 +192,15 @@ async function setIARole(guildId, role, add = true) {
     return updated;
 }
 
+async function setCitizenRole(guildId, role, add = true) {
+    const current = await guildConfigRepo.getCitizenRoles(guildId);
+    const updated = add
+        ? [...new Set([...current, role.id])]
+        : current.filter(id => id !== role.id);
+    await guildConfigRepo.setCitizenRoles(guildId, updated);
+    return updated;
+}
+
 async function setConfigManagerRole(guildId, role, add = true) {
     const current = await guildConfigRepo.getConfigManagerRoles(guildId);
     const updated = add
@@ -220,7 +235,7 @@ const CONFIG_GROUPS = [
     },
     {
         title: '🪪 Cargos',
-        keys: ['police_role_ids', 'supervisor_role_ids', 'ia_role_ids', 'config_manager_role_ids'],
+        keys: ['police_role_ids', 'supervisor_role_ids', 'ia_role_ids', 'citizen_role_ids', 'config_manager_role_ids'],
     },
 ];
 
@@ -291,4 +306,4 @@ async function buildConfigEmbed(guild) {
     return embeds;
 }
 
-module.exports = { setChannel, setRole, setPoliceRole, setIARole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };
+module.exports = { setChannel, setRole, setPoliceRole, setIARole, setCitizenRole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };

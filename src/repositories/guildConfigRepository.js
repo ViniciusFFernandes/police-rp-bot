@@ -31,6 +31,7 @@ const VALID_KEYS = [
     'civil_evidence_channel_id',
     'traffic_warnings_channel_id',
     'announcements_channel_id',
+    'citizen_role_ids',
 ];
 
 async function get(guildId, key) {
@@ -117,11 +118,22 @@ async function setPoliceRoles(guildId, roleIds) {
     await set(guildId, 'police_role_ids', JSON.stringify(roleIds));
 }
 
+async function getCitizenRoles(guildId) {
+    const raw = await get(guildId, 'citizen_role_ids');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+async function setCitizenRoles(guildId, roleIds) {
+    await set(guildId, 'citizen_role_ids', JSON.stringify(roleIds));
+}
+
 module.exports = {
     get, set, getAll, isConfigured,
     getSupervisorRoles, setSupervisorRoles,
     getConfigManagerRoles, setConfigManagerRoles,
     getIARoles, setIARoles,
     getPoliceRoles, setPoliceRoles,
+    getCitizenRoles, setCitizenRoles,
     VALID_KEYS,
 };
