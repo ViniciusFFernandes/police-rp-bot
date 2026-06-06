@@ -49,4 +49,12 @@ async function findAllByGuild(guildId) {
     return rows;
 }
 
-module.exports = { upsert, findByUser, findByDiscordId, findAllByGuild };
+async function remove(userId, guildId) {
+    const { rowCount } = await db.query(
+        `DELETE FROM official_profiles WHERE user_id = $1 AND guild_id = $2`,
+        [userId, guildId]
+    );
+    return rowCount > 0;
+}
+
+module.exports = { upsert, findByUser, findByDiscordId, findAllByGuild, remove };

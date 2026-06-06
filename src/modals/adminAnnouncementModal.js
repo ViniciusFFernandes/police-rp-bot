@@ -44,15 +44,17 @@ module.exports = {
                 .setFooter({ text: `Comunicado de ${interaction.member.displayName}` })
                 .setTimestamp();
 
-            const message = await channel.send({
-                content: mentions.join(' '),
-                embeds: [embed],
-                allowedMentions: { parse: ['everyone'], roles: policeRoleIds },
-            });
+            const message = await channel.send({ embeds: [embed] });
 
             for (const emoji of parseEmojis(emojisRaw)) {
                 try { await message.react(emoji); } catch { /* emoji inválido ou inacessível — ignora */ }
             }
+
+            // Envia as menções em uma mensagem separada, após o quadro do aviso
+            await channel.send({
+                content: mentions.join(' '),
+                allowedMentions: { parse: ['everyone'], roles: policeRoleIds },
+            });
 
             return interaction.editReply({ content: `✅ Comunicado publicado em ${channel}.` });
         } catch (err) {

@@ -12,6 +12,7 @@ const userRepo            = require('../repositories/userRepository');
 const officialProfileRepo = require('../repositories/officialProfileRepository');
 const shiftRepo           = require('../repositories/shiftRepository');
 const officialWeaponRepo  = require('../repositories/officialWeaponRepository');
+const callsignBoardService = require('../services/callsignBoardService');
 const { isAdmin, isSupervisor } = require('../utils/permissions');
 const { formatDuration, formatTimestamp } = require('../utils/time');
 const { COLOR } = require('../utils/embeds');
@@ -166,6 +167,64 @@ module.exports = {
                 );
 
                 return interaction.showModal(modal);
+            }
+
+            // ── Remover do Quadro de Callsigns — passo 1: selecionar oficial ──
+            if (action === 'callsign_remove') {
+                return interaction.reply({
+                    content: 'Selecione o oficial a remover do quadro de callsigns (ex: oficial demitido):',
+                    components: [userSelectRow('adminpanel:callsign_remove_user', 'Selecione o oficial')],
+                    ephemeral: true,
+                });
+            }
+
+            // ── Remover do Quadro de Callsigns — passo 2: confirmar ───
+            if (action === 'callsign_remove_user') {
+                await interaction.deferUpdate();
+                const targetId = interaction.values[0];
+                const profile  = await officialProfileRepo.findByDiscordId(targetId, interaction.guildId);
+
+                if (!profile) {
+                    return interaction.editReply({
+                        content: `⚠️ <@${targetId}> não possui perfil no quadro de callsigns.`,
+                        components: [],
+                    });
+                }
+
+                const confirmRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`adminpanel:callsign_remove_confirm:${targetId}`)
+                        .setLabel('Confirmar Remoção')
+                        .setEmoji('🗑️')
+                        .setStyle(ButtonStyle.Danger),
+                );
+
+                return interaction.editReply({
+                    content: `Confirma a remoção de **${profile.display_name ?? profile.discord_id}** ` +
+                        `(Distrito ${profile.district} · Callsign ${profile.callsign_num}) do quadro de callsigns?`,
+                    components: [confirmRow],
+                });
+            }
+
+            // ── Remover do Quadro de Callsigns — passo 3: executar ────
+            // customId: adminpanel:callsign_remove_confirm:{targetId}
+            if (action === 'callsign_remove_confirm') {
+                await interaction.deferUpdate();
+                const targetId = parts[2];
+                const dbUser   = await userRepo.findByDiscordId(targetId);
+
+                const removed = dbUser ? await officialProfileRepo.remove(dbUser.id, interaction.guildId) : false;
+
+                if (!removed) {
+                    return interaction.editReply({ content: '⚠️ Não foi possível remover — perfil não encontrado.', components: [] });
+                }
+
+                await callsignBoardService.refresh(interaction.guild);
+
+                return interaction.editReply({
+                    content: `✅ <@${targetId}> foi removido do quadro de callsigns.`,
+                    components: [],
+                });
             }
 
             // ── Resumo — passo 1: selecionar oficial ─────────────────

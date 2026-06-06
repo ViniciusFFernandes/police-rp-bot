@@ -23,6 +23,7 @@ function buildAdminPanelEmbed() {
             { name: '🗄️ Arsenal de Oficial',      value: 'Exibe o arsenal completo com histórico de extravios.',           inline: true },
             { name: '🚔 Turnos em Andamento',     value: 'Lista todos os turnos ativos no servidor no momento.',           inline: true },
             { name: '📢 Comunicado Geral',        value: 'Publica um comunicado marcando os oficiais no canal configurado.', inline: true },
+            { name: '🗑️ Remover do Quadro',       value: 'Remove um oficial do quadro de callsigns (ex: demissão).',       inline: true },
         );
 }
 
@@ -60,6 +61,11 @@ function buildAdminPanelComponents() {
             .setLabel('Comunicado Geral')
             .setEmoji('📢')
             .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('adminpanel:callsign_remove')
+            .setLabel('Remover do Quadro')
+            .setEmoji('🗑️')
+            .setStyle(ButtonStyle.Danger),
     );
     return [row1, row2];
 }
