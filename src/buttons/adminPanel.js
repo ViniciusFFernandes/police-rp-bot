@@ -13,7 +13,7 @@ const officialProfileRepo = require('../repositories/officialProfileRepository')
 const shiftRepo           = require('../repositories/shiftRepository');
 const officialWeaponRepo  = require('../repositories/officialWeaponRepository');
 const callsignBoardService = require('../services/callsignBoardService');
-const { isAdmin, isSupervisor } = require('../utils/permissions');
+const { isIAStaff } = require('../utils/permissions');
 const { formatDuration, formatTimestamp } = require('../utils/time');
 const { COLOR } = require('../utils/embeds');
 const logger = require('../utils/logger');
@@ -99,8 +99,8 @@ module.exports = {
         const action = parts[1];
 
         try {
-            // Apenas supervisores e administradores
-            if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+            // Supervisores, administradores e Assuntos Internos
+            if (!await isIAStaff(interaction.member)) {
                 const reply = { content: '❌ Acesso restrito a **Supervisores** e **Administradores**.', ephemeral: true };
                 if (interaction.replied || interaction.deferred) return interaction.followUp(reply);
                 return interaction.reply(reply);

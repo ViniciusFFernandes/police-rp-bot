@@ -6,7 +6,7 @@ const shiftRepo = require('../../repositories/shiftRepository');
 const userRepo = require('../../repositories/userRepository');
 const { formatTimestamp } = require('../../utils/time');
 const { COLOR } = require('../../utils/embeds');
-const { canManageShift, isAdmin, isSupervisor } = require('../../utils/permissions');
+const { canManageShift, isIAStaff } = require('../../utils/permissions');
 const guildConfigRepo = require('../../repositories/guildConfigRepository');
 
 module.exports = {
@@ -183,7 +183,7 @@ module.exports = {
             const serial = interaction.options.getString('serie').trim();
             const observation = interaction.options.getString('observacao')?.trim() || null;
 
-            const canAct = isAdmin(interaction.member) || await isSupervisor(interaction.member);
+            const canAct = await isIAStaff(interaction.member);
             const dbUser = await userRepo.findByDiscordId(interaction.user.id);
 
             // Verifica se a arma pertence ao oficial (ou se é admin/supervisor)

@@ -8,7 +8,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
-const { isSupervisor, isAdmin } = require('../utils/permissions');
+const { isIAStaff } = require('../utils/permissions');
 const srRepo             = require('../repositories/serviceReportRepository');
 const srService          = require('../services/serviceReportService');
 const guildConfigRepo    = require('../repositories/guildConfigRepository');
@@ -34,8 +34,7 @@ module.exports = {
             const report = await srRepo.findById(reportId, interaction.guildId);
             if (!report) return interaction.reply({ content: '❌ Relatório não encontrado.', ephemeral: true });
 
-            const canChange = isAdmin(interaction.member)
-                || await isSupervisor(interaction.member)
+            const canChange = await isIAStaff(interaction.member)
                 || interaction.user.id === report.opened_by_discord_id;
 
             if (!canChange) {

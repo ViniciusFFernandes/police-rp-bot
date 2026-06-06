@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const shiftRepo     = require('../../repositories/shiftRepository');
 const pauseRepo     = require('../../repositories/pauseRepository');
 const weaponRepo    = require('../../repositories/weaponRepository');
-const { isAdmin, isSupervisor } = require('../../utils/permissions');
+const { isIAStaff } = require('../../utils/permissions');
 const { formatTimestamp, formatDuration } = require('../../utils/time');
 const { COLOR } = require('../../utils/embeds');
 
@@ -32,8 +32,8 @@ module.exports = {
 
         // ── /turno listar ──────────────────────────────────────────────
         if (sub === 'listar') {
-            if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
-                return interaction.editReply({ content: '❌ Apenas **Administradores** e **Supervisores** podem listar turnos.' });
+            if (!await isIAStaff(interaction.member)) {
+                return interaction.editReply({ content: '❌ Apenas **Administradores**, **Supervisores** e **Assuntos Internos** podem listar turnos.' });
             }
 
             const shifts = await shiftRepo.findAllActiveByGuild(guildId);
@@ -64,8 +64,8 @@ module.exports = {
             const targetUser = interaction.options.getUser('usuario') ?? interaction.user;
             const isSelf     = targetUser.id === interaction.user.id;
 
-            if (!isSelf && !isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
-                return interaction.editReply({ content: '❌ Apenas **Administradores** e **Supervisores** podem encerrar turnos de outros oficiais.' });
+            if (!isSelf && !await isIAStaff(interaction.member)) {
+                return interaction.editReply({ content: '❌ Apenas **Administradores**, **Supervisores** e **Assuntos Internos** podem encerrar turnos de outros oficiais.' });
             }
 
             // Busca turno ativo pelo líder

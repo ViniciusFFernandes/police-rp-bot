@@ -3,7 +3,7 @@ const userRepo               = require('../../repositories/userRepository');
 const officialProfileRepo    = require('../../repositories/officialProfileRepository');
 const unitRepo               = require('../../repositories/unitRepository');
 const callsignBoardService   = require('../../services/callsignBoardService');
-const { isAdmin, isSupervisor } = require('../../utils/permissions');
+const { isIAStaff } = require('../../utils/permissions');
 const { formatTimestamp } = require('../../utils/time');
 const { COLOR } = require('../../utils/embeds');
 
@@ -62,10 +62,10 @@ module.exports = {
 
         // ── /oficial definir ───────────────────────────────────────
         if (sub === 'definir') {
-            // Restrito a supervisores e administradores
-            if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+            // Restrito a supervisores, administradores e Assuntos Internos
+            if (!await isIAStaff(interaction.member)) {
                 return interaction.editReply({
-                    content: '❌ Apenas **Administradores** e **Supervisores** podem definir perfis de oficiais.',
+                    content: '❌ Apenas **Administradores**, **Supervisores** e **Assuntos Internos** podem definir perfis de oficiais.',
                 });
             }
 
@@ -139,7 +139,7 @@ module.exports = {
             const targetUser = interaction.options.getUser('usuario') ?? interaction.user;
             const isSelf     = targetUser.id === interaction.user.id;
 
-            if (!isSelf && !isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+            if (!isSelf && !await isIAStaff(interaction.member)) {
                 return interaction.editReply({
                     content: '❌ Você não tem permissão para ver o perfil de outros oficiais.',
                 });

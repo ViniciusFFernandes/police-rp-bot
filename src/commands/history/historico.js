@@ -4,7 +4,7 @@ const shiftRepo = require('../../repositories/shiftRepository');
 const officialWeaponRepo = require('../../repositories/officialWeaponRepository');
 const { formatDuration, formatTimestamp } = require('../../utils/time');
 const { COLOR } = require('../../utils/embeds');
-const { isAdmin, isSupervisor } = require('../../utils/permissions');
+const { isIAStaff } = require('../../utils/permissions');
 
 const PAGE_SIZE = 8;
 
@@ -43,8 +43,8 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        // Apenas supervisores e administradores podem consultar históricos
-        if (!isAdmin(interaction.member) && !await isSupervisor(interaction.member)) {
+        // Supervisores, administradores e Assuntos Internos podem consultar históricos
+        if (!await isIAStaff(interaction.member)) {
             return interaction.editReply({
                 content: '❌ Você não tem permissão para consultar históricos. Este comando é restrito a supervisores.',
             });

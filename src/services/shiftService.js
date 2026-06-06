@@ -7,7 +7,7 @@ const weaponRepo = require('../repositories/weaponRepository');
 const weaponLossRepo = require('../repositories/weaponLossRepository');
 const officialWeaponRepo = require('../repositories/officialWeaponRepository');
 const userRepo = require('../repositories/userRepository');
-const { isAdmin, isSupervisor } = require('../utils/permissions');
+const { isIAStaff } = require('../utils/permissions');
 const { buildShiftEmbed, buildShiftButtons, buildReportEmbed, buildWeaponLossEmbed, buildWeaponAddedEmbed } = require('../utils/embeds');
 const logger = require('../utils/logger');
 
@@ -181,7 +181,7 @@ async function reportWeaponLoss(interaction, { serialNumber, observation }) {
     const owner = await officialWeaponRepo.findBySerial(interaction.guildId, serialNumber);
     const isLeader = shift.user_id === dbUser.id;
     const isOwner = owner && owner.user_id === dbUser.id;
-    const elevated = isAdmin(interaction.member) || await isSupervisor(interaction.member);
+    const elevated = await isIAStaff(interaction.member);
 
     if (!isOwner && !isLeader && !elevated) {
         return { error: 'Você só pode registrar extravio das suas próprias armas. Apenas o responsável da unidade ou um supervisor pode extraviar armas de outros oficiais.' };

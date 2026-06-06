@@ -51,9 +51,7 @@ async function isCitizen(member) {
 async function canManageShift(interaction, shiftOwnerId) {
     const member = interaction.member;
     if (member.id === shiftOwnerId) return true;
-    if (isAdmin(member)) return true;
-    if (await isSupervisor(member)) return true;
-    return false;
+    return isIAStaff(member);
 }
 
 module.exports = { isSupervisor, isAdmin, isConfigManager, isIAStaff, hasPoliceAccess, isCitizen, canManageShift };
