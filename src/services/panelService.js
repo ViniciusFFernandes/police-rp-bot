@@ -54,6 +54,19 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Secondary),
     );
 
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('panel:open_report')
+            .setLabel('Abrir Relatório')
+            .setEmoji('📋')
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('panel:list_reports')
+            .setLabel('Consultar Relatórios')
+            .setEmoji('🔎')
+            .setStyle(ButtonStyle.Secondary),
+    );
+
     const row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('panel:traffic_warning_register')
@@ -67,17 +80,7 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Secondary),
     );
 
-    const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('panel:open_report')
-            .setLabel('Abrir Relatório')
-            .setEmoji('📋')
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId('panel:list_reports')
-            .setLabel('Consultar Relatórios')
-            .setEmoji('🔎')
-            .setStyle(ButtonStyle.Secondary),
+    const row4 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('panel:start_shift')
             .setLabel('Iniciar Turno')
@@ -90,7 +93,7 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Danger),
     );
 
-    return [row1, row2, row3];
+    return [row1, row2, row3, row4];
 }
 
 async function refresh(guild) {
