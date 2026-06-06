@@ -334,6 +334,16 @@ module.exports = {
                 });
             }
 
+            if (action === 'traffic_warning_register') {
+                const step1 = require('../modals/trafficWarningStep1Modal');
+                return interaction.showModal(step1.build());
+            }
+
+            if (action === 'traffic_warning_search') {
+                const searchModal = require('../modals/trafficWarningSearchModal');
+                return interaction.showModal(searchModal.build());
+            }
+
             if (action === 'profile_view') {
                 await interaction.deferReply({ ephemeral: true });
 

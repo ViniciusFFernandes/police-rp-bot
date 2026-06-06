@@ -29,6 +29,7 @@ const VALID_KEYS = [
     'civil_complaints_channel_id',
     'civil_complaints_category_id',
     'civil_evidence_channel_id',
+    'traffic_warnings_channel_id',
 ];
 
 async function get(guildId, key) {

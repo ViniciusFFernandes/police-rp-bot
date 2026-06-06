@@ -25,6 +25,8 @@ function buildPanelEmbed() {
             { name: '🔎 Consultar Relatórios', value: 'Busca relatórios com filtros opcionais (tipo, envolvido, situação).', inline: true },
             { name: '🚔 Iniciar Turno',    value: 'Inicia um novo turno como unidade operacional.',          inline: true },
             { name: '📕 Encerrar Turno',   value: 'Encerra seu turno ativo sem precisar localizar a embed.', inline: true },
+            { name: '🚦 Advertência de Trânsito', value: 'Registra uma nova advertência de trânsito.', inline: true },
+            { name: '🚧 Consultar Advertências',  value: 'Busca advertências por CitizenID e/ou placa.', inline: true },
         );
 }
 
@@ -52,6 +54,19 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Secondary),
     );
 
+    const row3 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('panel:traffic_warning_register')
+            .setLabel('Advertência de Trânsito')
+            .setEmoji('🚦')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('panel:traffic_warning_search')
+            .setLabel('Consultar Advertências')
+            .setEmoji('🚧')
+            .setStyle(ButtonStyle.Secondary),
+    );
+
     const row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('panel:open_report')
@@ -75,7 +90,7 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Danger),
     );
 
-    return [row1, row2];
+    return [row1, row2, row3];
 }
 
 async function refresh(guild) {

@@ -140,6 +140,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde os arquivos de provas das denúncias civis são arquivados',
     },
+    traffic_warnings_channel_id: {
+        label: 'Canal de Notificações de Trânsito',
+        emoji: '🚦',
+        type: 'channel',
+        description: 'Canal onde as notificações de novas advertências de trânsito são enviadas',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

@@ -276,6 +276,16 @@ module.exports = {
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true)
                 )
+        )
+        .addSubcommand(sub =>
+            sub.setName('canal-notificacoes-transito')
+                .setDescription('Canal onde as notificações de novas advertências de trânsito são enviadas')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
@@ -318,6 +328,7 @@ module.exports = {
             'canal-denuncias-civis':  'civil_complaints_channel_id',
             'categoria-denuncias-civis':     'civil_complaints_category_id',
             'canal-provas-denuncias-civis':  'civil_evidence_channel_id',
+            'canal-notificacoes-transito':   'traffic_warnings_channel_id',
         };
 
         if (KEY_MAP[sub]) {
