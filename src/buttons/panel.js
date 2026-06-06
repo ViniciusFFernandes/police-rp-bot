@@ -339,6 +339,11 @@ module.exports = {
                 return interaction.showModal(step1.build());
             }
 
+            if (action === 'traffic_warning_step2') {
+                const step2 = require('../modals/trafficWarningStep2Modal');
+                return interaction.showModal(step2.build());
+            }
+
             if (action === 'traffic_warning_search') {
                 const searchModal = require('../modals/trafficWarningSearchModal');
                 return interaction.showModal(searchModal.build());

@@ -1,4 +1,4 @@
-const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle } = require('discord.js');
 const pendingTrafficWarning = require('../utils/pendingTrafficWarning');
 
 const customId = 'modal:traffic_warning_step1';
@@ -58,7 +58,23 @@ module.exports = {
             deadline: deadline || null,
         });
 
-        const step2 = require('./trafficWarningStep2Modal');
-        return interaction.showModal(step2.build());
+        // Discord não permite abrir modal em resposta a outro modal —
+        // enviamos uma mensagem efêmera com botão para abrir a etapa 2.
+        return interaction.reply({
+            content:
+                `✅ **Etapa 1 salva!** Clique abaixo para preencher as infrações.\n` +
+                `👤 **${condutorName}** · 🪪 ${citizenId}` +
+                (plate ? ` · 🚗 ${plate}` : '') +
+                (deadline ? ` · ⏳ ${deadline}` : ''),
+            components: [
+                new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('panel:traffic_warning_step2')
+                        .setLabel('➡️ Continuar — Etapa 2/2')
+                        .setStyle(ButtonStyle.Primary)
+                ),
+            ],
+            ephemeral: true,
+        });
     },
 };
