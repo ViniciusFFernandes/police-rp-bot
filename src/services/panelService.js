@@ -24,6 +24,7 @@ function buildPanelEmbed() {
             { name: '📋 Abrir Relatório',  value: 'Abre um novo relatório de ocorrência, prisão ou crime.', inline: true },
             { name: '🔎 Consultar Relatórios', value: 'Busca relatórios com filtros opcionais (tipo, envolvido, situação).', inline: true },
             { name: '🚔 Iniciar Turno',    value: 'Inicia um novo turno como unidade operacional.',          inline: true },
+            { name: '📕 Encerrar Turno',   value: 'Encerra seu turno ativo sem precisar localizar a embed.', inline: true },
         );
 }
 
@@ -67,6 +68,11 @@ function buildPanelComponents() {
             .setLabel('Iniciar Turno')
             .setEmoji('🚔')
             .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('panel:end_shift')
+            .setLabel('Encerrar Turno')
+            .setEmoji('📕')
+            .setStyle(ButtonStyle.Danger),
     );
 
     return [row1, row2];

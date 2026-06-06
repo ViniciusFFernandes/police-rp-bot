@@ -226,6 +226,30 @@ module.exports = {
                 return openCompositionScreen(interaction);
             }
 
+            if (action === 'end_shift') {
+                const dbUser = await userRepo.findByDiscordId(interaction.user.id);
+                const shift  = dbUser ? await shiftRepo.findActiveByUser(dbUser.id, interaction.guildId) : null;
+
+                if (!shift) {
+                    return interaction.reply({ content: '❌ Você não possui um turno ativo no momento.', ephemeral: true });
+                }
+
+                const reasonSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`shiftend:reason:${interaction.user.id}`)
+                    .setPlaceholder('Selecione o motivo do encerramento')
+                    .addOptions(
+                        { label: 'Fim de Patrulha', value: 'patrol_end', emoji: '🏁' },
+                        { label: 'Remodulação', value: 'remodulation', emoji: '🔄', description: 'Encerra e permite iniciar uma nova unidade' },
+                        { label: 'Outro', value: 'other', emoji: '📝', description: 'Informar um motivo personalizado' },
+                    );
+
+                return interaction.reply({
+                    content: '📕 **Encerramento de Turno** — qual o motivo?',
+                    components: [new ActionRowBuilder().addComponents(reasonSelect)],
+                    ephemeral: true,
+                });
+            }
+
             if (action === 'open_report') {
                 pendingSR.clear(interaction.guildId, interaction.user.id);
 
