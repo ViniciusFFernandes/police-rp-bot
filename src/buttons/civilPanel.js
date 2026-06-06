@@ -17,7 +17,7 @@ const logger = require('../utils/logger');
 
 const STATUS_LABEL = {
     pending:  '🟡 Aguardando avaliação',
-    accepted: '✅ Aceita — investigação a ser aberta',
+    accepted: '✅ Aceita',
     rejected: '❌ Arquivada',
 };
 
