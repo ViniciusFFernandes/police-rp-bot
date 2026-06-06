@@ -26,9 +26,10 @@ Suporta **múltiplos servidores simultaneamente** — cada servidor possui confi
 16. [Painéis de Botões](#painéis-de-botões)
 17. [Assuntos Internos (IA)](#assuntos-internos-ia)
 18. [Relatórios de Serviço (SR)](#relatórios-de-serviço-sr)
-19. [Controle de permissões](#controle-de-permissões)
-20. [Banco de dados](#banco-de-dados)
-21. [Solução de problemas](#solução-de-problemas)
+19. [Ouvidoria Civil (Denúncias)](#ouvidoria-civil-denúncias)
+20. [Controle de permissões](#controle-de-permissões)
+21. [Banco de dados](#banco-de-dados)
+22. [Solução de problemas](#solução-de-problemas)
 
 ---
 
@@ -319,6 +320,11 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 | `/configurar canal-painel` | Canal do painel operacional (todos os oficiais) |
 | `/configurar canal-painel-admin` | Canal do painel administrativo (supervisores) |
 | `/configurar canal-painel-ia` | Canal do painel de Assuntos Internos |
+| `/configurar canal-medidas-ia` | Canal de alertas de medidas disciplinares (punições, afastamentos) |
+| `/configurar canal-painel-civil` | Canal do painel de denúncias para civis |
+| `/configurar canal-denuncias-civis` | Canal onde a Corregedoria avalia as denúncias registradas por civis |
+| `/configurar categoria-denuncias-civis` | Categoria para canais temporários de coleta de provas de denúncias civis |
+| `/configurar canal-provas-denuncias-civis` | Canal de arquivo permanente de provas de denúncias civis |
 | `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
 | `/configurar cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
 | `/configurar cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
@@ -479,8 +485,10 @@ police-rp-bot/
 │   │   ├── iaPanel.js                 # Painel de IA — ações para equipe de Assuntos Internos
 │   │   ├── iaFlow.js                  # Fluxo de abertura de investigação (etapas + provas)
 │   │   ├── iaBoard.js                 # Botões do quadro de investigação
-│   │   ├── srFlow.js                  # Fluxo de abertura de Relatório de Serviço
-│   │   └── srBoard.js                 # Botões do quadro de Relatório de Serviço
+│   │   ├── srFlow.js                  # Fluxo de abertura de Relatório de Serviço + consulta com filtros
+│   │   ├── srBoard.js                 # Botões do quadro de Relatório de Serviço
+│   │   ├── civilPanel.js              # Painel civil — denúncia (com provas), consulta de denúncias
+│   │   └── civilComplaint.js          # Avaliação da Corregedoria (aceitar/arquivar denúncia)
 │   │
 │   ├── modals/
 │   │   ├── endReasonModal.js                # Encerramento com motivo "Outro"
@@ -497,7 +505,9 @@ police-rp-bot/
 │   │   ├── iaPanelView.js                   # Ver investigação pelo painel de IA
 │   │   ├── iaPanelDelete.js                 # Deletar investigação pelo painel de IA
 │   │   ├── srDetailsModal.js                # Detalhes do Relatório de Serviço (etapa 2)
-│   │   └── srBoardEditModal.js              # Editar descrição de relatório existente
+│   │   ├── srBoardEditModal.js              # Editar descrição de relatório existente
+│   │   ├── civilComplaintModal.js           # Formulário de denúncia civil; inicia provas
+│   │   └── civilComplaintRejectModal.js     # Justificativa de arquivamento da denúncia
 │   │
 │   ├── services/
 │   │   ├── shiftService.js            # Lógica de turno (start/pause/resume/end/loss/addWeapon)
@@ -507,6 +517,8 @@ police-rp-bot/
 │   │   ├── iaPanelService.js          # Painel de IA — publicação/atualização
 │   │   ├── iaService.js               # Embed do quadro de investigação + publicação
 │   │   ├── serviceReportService.js    # Embed do quadro de Relatório de Serviço + publicação
+│   │   ├── civilPanelService.js       # Painel civil — publicação/atualização
+│   │   ├── civilComplaintService.js   # Card de avaliação de denúncia + publicação
 │   │   └── guildConfigService.js      # Lógica de configuração por servidor
 │   │
 │   ├── repositories/
@@ -520,6 +532,7 @@ police-rp-bot/
 │   │   ├── officialProfileRepository.js
 │   │   ├── iaRepository.js
 │   │   ├── serviceReportRepository.js
+│   │   ├── civilComplaintRepository.js
 │   │   ├── vehicleRepository.js
 │   │   ├── unitRepository.js
 │   │   └── guildConfigRepository.js
@@ -541,6 +554,9 @@ police-rp-bot/
 │   │   ├── pendingComposition.js
 │   │   ├── pendingIA.js               # Store temporário do fluxo multi-etapa de IA (TTL 15min)
 │   │   ├── pendingSR.js               # Store temporário do fluxo multi-etapa de SR (TTL 15min)
+│   │   ├── pendingSRFilter.js         # Store temporário dos filtros de consulta de SR (TTL 15min)
+│   │   ├── pendingCivilComplaint.js   # Store temporário do fluxo de denúncia civil (TTL 15min)
+│   │   ├── collectEvidence.js         # Coleta/arquiva provas de canais temporários (IA/SR/Civil)
 │   │   ├── openCompositionScreen.js
 │   │   └── guildWhitelist.js
 │   │
@@ -562,7 +578,9 @@ police-rp-bot/
 │       ├── 012_add_badge_to_profiles.sql
 │       ├── 013_ia_investigations.sql
 │       ├── 014_ia_multi_accused.sql
-│       └── 015_service_reports.sql
+│       ├── 015_service_reports.sql
+│       ├── 016_ia_measures.sql
+│       └── 017_civil_complaints.sql
 │
 ├── scripts/
 │   ├── deploy-commands.js
@@ -745,6 +763,17 @@ Exclusivo para a equipe de Assuntos Internos (admins, supervisores e cargo de IA
 
 ---
 
+### Painel Civil — `/configurar canal-painel-civil`
+
+Aberto a qualquer membro do servidor (ouvidoria pública).
+
+| Botão | Ação |
+|---|---|
+| 📢 **Fazer Denúncia** | Abre o formulário de denúncia (identificada ou anônima) |
+| 📂 **Minhas Denúncias** | Lista as denúncias identificadas registradas pelo próprio usuário |
+
+---
+
 ## Assuntos Internos (IA)
 
 ### Configuração
@@ -873,6 +902,62 @@ Embed persistente no canal de relatórios com todos os dados e botões de gerenc
 | ✏️ **Editar Descrição** | Abre modal pré-preenchido com a descrição atual |
 | 📎 **Adicionar Provas** | Canal temporário para novas provas — acrescenta às existentes |
 
+### Consultar relatórios — Painel Operacional → 🔎 Consultar Relatórios
+
+Busca relatórios com filtros **totalmente opcionais** — combine quantos quiser ou nenhum:
+
+| Filtro | Tipo |
+|---|---|
+| Tipo | Select (Ocorrência / Prisão-Captura / Crime Não Resolvido) |
+| Envolvido | Select de usuário |
+| Situação | Select (Em Análise / Finalizado / Resolvido / Arquivado) |
+
+Sem nenhum filtro selecionado, lista todos os relatórios do servidor (até 15 por consulta, com contagem total).
+
+---
+
+## Ouvidoria Civil (Denúncias)
+
+Canal de denúncias aberto a qualquer membro do servidor, totalmente separado do sistema de Assuntos Internos. A denúncia **não** vira automaticamente um registro de IA — primeiro é encaminhada para um canal de avaliação, onde um oficial da Corregedoria decide se abre ou não uma investigação interna.
+
+### Configuração
+
+```
+/configurar canal-painel-civil               #ouvidoria              ← painel público de denúncias
+/configurar canal-denuncias-civis            #avaliacao-denuncias    ← avaliação pela Corregedoria
+/configurar categoria-denuncias-civis        Denúncias Civis         ← canais temporários de provas
+/configurar canal-provas-denuncias-civis     #provas-denuncias       ← arquivo permanente de provas
+```
+
+### Registrar uma denúncia — Painel Civil → 📢 Fazer Denúncia
+
+**Etapa 1 — Formulário** (modal)
+
+| Campo | Obrigatório |
+|---|:---:|
+| Seu nome (deixe em branco para anônima) | Não |
+| Assunto / Policial envolvido | **Sim** |
+| Descreva o ocorrido | **Sim** |
+
+> ⚠️ Deixar o campo **nome** em branco registra a denúncia como **anônima** — ela não fica vinculada ao usuário e **não pode ser consultada depois** em "Minhas Denúncias". Preencher o nome vincula a denúncia ao usuário, permitindo consulta futura pelo número.
+
+**Etapa 2 — Provas**
+
+Mesmo fluxo de canal temporário usado em IA/SR: o civil pode **Adicionar Provas** (cria canal temporário, envia arquivos/links e confirma — os arquivos são rehospedados no canal de arquivo antes do canal ser deletado) ou **Enviar sem Provas**.
+
+### Avaliação pela Corregedoria
+
+Cada denúncia gera um card no canal de avaliação configurado, visível apenas à equipe de Assuntos Internos, com:
+
+| Botão | Ação |
+|---|---|
+| ✅ **Aceitar — Abrir Investigação** | Marca a denúncia como aceita; o oficial deve então abrir a investigação interna pelo Painel de IA (origem Civil), referenciando o número da denúncia como identificação do reclamante |
+| ❌ **Arquivar** | Modal com justificativa opcional — encerra a denúncia sem abrir investigação |
+
+### Consultar denúncias — Painel Civil → 📂 Minhas Denúncias
+
+Lista apenas as denúncias **identificadas** feitas pelo próprio usuário, com número, assunto e status atual (Aguardando avaliação / Aceita / Arquivada). Denúncias anônimas nunca aparecem aqui.
+
 ---
 
 ## Controle de permissões
@@ -933,6 +1018,7 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `weapon_losses` | Histórico de extravios |
 | `ia_investigations` | Investigações internas de Assuntos Internos |
 | `service_reports` | Relatórios de Serviço (ocorrências, prisões, crimes) |
+| `civil_complaints` | Denúncias civis (Ouvidoria) e seu status de avaliação |
 | `vehicles` | Viaturas disponíveis por servidor |
 | `units` | Unidades operacionais disponíveis por servidor |
 | `guild_config` | Todas as configurações do servidor |
@@ -962,6 +1048,12 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `admin_panel_message_id` | ID da mensagem persistente do painel admin (interno) |
 | `ia_panel_channel_id` | Canal do painel de IA |
 | `ia_panel_message_id` | ID da mensagem persistente do painel de IA (interno) |
+| `ia_measures_channel_id` | Canal de alertas de medidas disciplinares |
+| `civil_panel_channel_id` | Canal do painel de denúncias civis |
+| `civil_panel_message_id` | ID da mensagem persistente do painel civil (interno) |
+| `civil_complaints_channel_id` | Canal de avaliação das denúncias pela Corregedoria |
+| `civil_complaints_category_id` | Categoria para canais temporários de provas de denúncias civis |
+| `civil_evidence_channel_id` | Canal de arquivo permanente de provas de denúncias civis |
 | `supervisor_role_ids` | JSON array de cargos supervisores |
 | `config_manager_role_ids` | JSON array de cargos gestores de configuração |
 | `police_role_ids` | JSON array de cargos com acesso ao bot |
