@@ -146,6 +146,12 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde as notificações de novas advertências de trânsito são enviadas',
     },
+    announcements_channel_id: {
+        label: 'Canal de Comunicados Gerais',
+        emoji: '📢',
+        type: 'channel',
+        description: 'Canal onde os comunicados gerais para os oficiais são publicados',
+    },
 };
 
 async function setChannel(guildId, key, channel) {
@@ -189,48 +195,100 @@ async function setConfigManagerRole(guildId, role, add = true) {
     return updated;
 }
 
+// Agrupa as chaves de configuração por área para uma exibição organizada
+// (embeds separados evitam misturar campos inline e de cargos na mesma grade)
+const CONFIG_GROUPS = [
+    {
+        title: '🔧 Geral',
+        keys: ['shift_channel_id', 'report_channel_id', 'weapon_report_channel_id', 'voice_category_id', 'callsign_channel_id', 'panel_channel_id', 'admin_panel_channel_id'],
+    },
+    {
+        title: '🛡️ Assuntos Internos',
+        keys: ['ia_channel_id', 'ia_category_id', 'ia_evidence_channel_id', 'ia_panel_channel_id', 'ia_measures_channel_id'],
+    },
+    {
+        title: '📋 Relatórios de Serviço',
+        keys: ['sr_channel_id', 'sr_category_id', 'sr_evidence_channel_id'],
+    },
+    {
+        title: '📢 Ouvidoria Civil',
+        keys: ['civil_panel_channel_id', 'civil_complaints_channel_id', 'civil_complaints_category_id', 'civil_evidence_channel_id'],
+    },
+    {
+        title: '🚦 Trânsito & Comunicados',
+        keys: ['traffic_warnings_channel_id', 'announcements_channel_id'],
+    },
+    {
+        title: '🪪 Cargos',
+        keys: ['police_role_ids', 'supervisor_role_ids', 'ia_role_ids', 'config_manager_role_ids'],
+    },
+];
+
+function buildChannelField(guild, key, meta, value) {
+    return {
+        name: `${meta.emoji} ${meta.label}`,
+        value: value
+            ? (meta.type === 'category' ? `\`${guild.channels.cache.get(value)?.name ?? value}\`` : `<#${value}>`)
+            : '❌ Não configurado',
+        inline: true,
+    };
+}
+
+function buildRoleField(key, meta, value) {
+    let roles = [];
+    try { roles = value ? JSON.parse(value) : []; } catch { roles = []; }
+    // Gestores de configuração podem não estar definidos sem ser um problema crítico
+    const optional = key === 'config_manager_role_ids';
+    return {
+        name: `${meta.emoji} ${meta.label}`,
+        value: roles.length > 0
+            ? roles.map(id => `<@&${id}>`).join(', ')
+            : optional ? '— Nenhum (somente Administradores)' : '❌ Não configurado',
+        inline: false,
+    };
+}
+
 async function buildConfigEmbed(guild) {
     const cfg = await guildConfigRepo.getAll(guild.id);
     const configured = await guildConfigRepo.isConfigured(guild.id);
 
-    const fields = [];
+    const embeds = [];
 
-    for (const [key, meta] of Object.entries(CONFIG_META)) {
-        const value = cfg[key];
-        if (meta.type === 'roles') {
-            let roles = [];
-            try { roles = value ? JSON.parse(value) : []; } catch { roles = []; }
-            // Gestores de configuração podem não estar definidos sem ser um problema crítico
-            const optional = key === 'config_manager_role_ids';
-            fields.push({
-                name: `${meta.emoji} ${meta.label}`,
-                value: roles.length > 0
-                    ? roles.map(id => `<@&${id}>`).join(', ')
-                    : optional ? '— Nenhum (somente Administradores)' : '❌ Não configurado',
-                inline: false,
+    embeds.push(
+        new EmbedBuilder()
+            .setColor(configured ? 0x2ECC71 : 0xE74C3C)
+            .setTitle(`⚙️ Configurações — ${guild.name}`)
+            .setDescription(
+                configured
+                    ? '✅ Servidor totalmente configurado.'
+                    : '⚠️ Configuração incompleta. Use `/configurar` para ajustar os itens marcados.'
+            )
+            .setFooter({ text: `Guild ID: ${guild.id}` })
+            .setTimestamp()
+    );
+
+    for (const group of CONFIG_GROUPS) {
+        const fields = group.keys
+            .filter(key => CONFIG_META[key])
+            .map(key => {
+                const meta  = CONFIG_META[key];
+                const value = cfg[key];
+                return meta.type === 'roles'
+                    ? buildRoleField(key, meta, value)
+                    : buildChannelField(guild, key, meta, value);
             });
-        } else {
-            fields.push({
-                name: `${meta.emoji} ${meta.label}`,
-                value: value
-                    ? (meta.type === 'category' ? `\`${guild.channels.cache.get(value)?.name ?? value}\`` : `<#${value}>`)
-                    : '❌ Não configurado',
-                inline: true,
-            });
-        }
+
+        if (fields.length === 0) continue;
+
+        embeds.push(
+            new EmbedBuilder()
+                .setColor(0x2980B9)
+                .setTitle(group.title)
+                .addFields(fields)
+        );
     }
 
-    return new EmbedBuilder()
-        .setColor(configured ? 0x2ECC71 : 0xE74C3C)
-        .setTitle(`⚙️ Configurações — ${guild.name}`)
-        .setDescription(
-            configured
-                ? '✅ Servidor totalmente configurado.'
-                : '⚠️ Configuração incompleta. Use `/configurar` para ajustar os itens marcados.'
-        )
-        .addFields(fields)
-        .setFooter({ text: `Guild ID: ${guild.id}` })
-        .setTimestamp();
+    return embeds;
 }
 
 module.exports = { setChannel, setRole, setPoliceRole, setIARole, setConfigManagerRole, buildConfigEmbed, CONFIG_META };

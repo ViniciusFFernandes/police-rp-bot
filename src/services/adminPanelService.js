@@ -22,6 +22,7 @@ function buildAdminPanelEmbed() {
             { name: '📋 Histórico de Turnos',     value: 'Lista os últimos turnos encerrados do oficial.',                 inline: true },
             { name: '🗄️ Arsenal de Oficial',      value: 'Exibe o arsenal completo com histórico de extravios.',           inline: true },
             { name: '🚔 Turnos em Andamento',     value: 'Lista todos os turnos ativos no servidor no momento.',           inline: true },
+            { name: '📢 Comunicado Geral',        value: 'Publica um comunicado marcando os oficiais no canal configurado.', inline: true },
         );
 }
 
@@ -54,6 +55,11 @@ function buildAdminPanelComponents() {
             .setLabel('Turnos em Andamento')
             .setEmoji('🚔')
             .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('adminpanel:announcement')
+            .setLabel('Comunicado Geral')
+            .setEmoji('📢')
+            .setStyle(ButtonStyle.Primary),
     );
     return [row1, row2];
 }

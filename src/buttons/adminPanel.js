@@ -260,6 +260,41 @@ module.exports = {
                 return interaction.editReply({ embeds: [embed] });
             }
 
+            if (action === 'announcement') {
+                const modal = new ModalBuilder()
+                    .setCustomId('modal:adminpanel_announcement')
+                    .setTitle('Comunicado Geral');
+
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('titulo')
+                            .setLabel('Título do comunicado')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                            .setMaxLength(150)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('mensagem')
+                            .setLabel('Mensagem')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setRequired(true)
+                            .setMaxLength(3500)
+                    ),
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('emojis')
+                            .setLabel('Emojis para reação (separados por espaço)')
+                            .setPlaceholder('ex: ✅ 👍')
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(false)
+                            .setMaxLength(100)
+                    ),
+                );
+                return interaction.showModal(modal);
+            }
+
             // ── Arsenal — passo 1: selecionar oficial ─────────────────
             if (action === 'history_arsenal') {
                 return interaction.reply({

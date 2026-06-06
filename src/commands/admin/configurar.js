@@ -278,6 +278,16 @@ module.exports = {
                 )
         )
         .addSubcommand(sub =>
+            sub.setName('canal-comunicados')
+                .setDescription('Canal onde os comunicados gerais para os oficiais são publicados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
             sub.setName('canal-notificacoes-transito')
                 .setDescription('Canal onde as notificações de novas advertências de trânsito são enviadas')
                 .addChannelOption(opt =>
@@ -329,6 +339,7 @@ module.exports = {
             'categoria-denuncias-civis':     'civil_complaints_category_id',
             'canal-provas-denuncias-civis':  'civil_evidence_channel_id',
             'canal-notificacoes-transito':   'traffic_warnings_channel_id',
+            'canal-comunicados':             'announcements_channel_id',
         };
 
         if (KEY_MAP[sub]) {

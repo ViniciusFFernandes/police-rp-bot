@@ -16,7 +16,7 @@ module.exports = {
             });
         }
 
-        const embed = await guildConfigService.buildConfigEmbed(interaction.guild);
-        await interaction.editReply({ embeds: [embed] });
+        const embeds = await guildConfigService.buildConfigEmbed(interaction.guild);
+        await interaction.editReply({ embeds });
     },
 };
