@@ -220,7 +220,7 @@ npm run dev
 
 Ao ser adicionado a um servidor, o bot detecta automaticamente que ele não está configurado e envia uma mensagem de boas-vindas com instruções.
 
-A configuração é feita inteiramente por **comandos slash**. Por padrão, apenas **Administradores** do servidor podem configurar o bot — mas é possível delegar isso a cargos específicos via `/configurar cargo-gestor`.
+A configuração é feita inteiramente por **comandos slash**. Por padrão, apenas **Administradores** do servidor podem configurar o bot — mas é possível delegar isso a cargos específicos via `/configurar-cargos cargo-gestor`.
 
 ### Passo 1 — Canais obrigatórios
 
@@ -234,8 +234,8 @@ A configuração é feita inteiramente por **comandos slash**. Por padrão, apen
 ### Passo 2 — Cargos supervisores
 
 ```
-/configurar cargo-supervisor @Supervisor Adicionar
-/configurar cargo-supervisor @Comandante Adicionar
+/configurar-cargos cargo-supervisor @Supervisor Adicionar
+/configurar-cargos cargo-supervisor @Comandante Adicionar
 ```
 
 Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, registrar extravios de qualquer arma e definir perfis de outros oficiais.
@@ -243,7 +243,7 @@ Supervisores podem gerenciar turnos de outros oficiais, consultar históricos, r
 ### Passo 3 — Cargos gestores de configuração (opcional)
 
 ```
-/configurar cargo-gestor @Gestor Adicionar
+/configurar-cargos cargo-gestor @Gestor Adicionar
 ```
 
 Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, mas **não** podem gerenciar os próprios cargos gestores (exclusivo de Administradores).
@@ -271,7 +271,7 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 /configurar canal-ia          #assuntos-internos
 /configurar categoria-ia      Assuntos Internos     ← categoria para canais de provas
 /configurar canal-provas-ia   #provas-ia            ← arquivo permanente de provas
-/configurar cargo-ia @Assuntos Internos Adicionar
+/configurar-cargos cargo-ia @Assuntos Internos Adicionar
 ```
 
 ### Passo 7 — Relatórios de Serviço (opcional)
@@ -327,11 +327,11 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 | `/configurar canal-provas-denuncias-civis` | Canal de arquivo permanente de provas de denúncias civis |
 | `/configurar canal-notificacoes-transito` | Canal de notificações de novas advertências de trânsito |
 | `/configurar canal-comunicados` | Canal onde os comunicados gerais são publicados |
-| `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
-| `/configurar cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
-| `/configurar cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
-| `/configurar cargo-cidadao` | Adiciona ou remove um cargo de cidadão (acesso restrito à Ouvidoria Civil) |
-| `/configurar cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
+| `/configurar-cargos cargo-supervisor` | Adiciona ou remove um cargo supervisor |
+| `/configurar-cargos cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
+| `/configurar-cargos cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
+| `/configurar-cargos cargo-cidadao` | Adiciona ou remove um cargo de cidadão (acesso restrito à Ouvidoria Civil) |
+| `/configurar-cargos cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
 | `/configuracoes` | Exibe status de todas as configurações |
 
 ---
@@ -783,7 +783,7 @@ Exclusivo para a equipe de Assuntos Internos (admins, supervisores e cargo de IA
 
 ### Painel Civil — `/configurar canal-painel-civil`
 
-Aberto a qualquer membro do servidor (ouvidoria pública), salvo se um **cargo de cidadão** for configurado via `/configurar cargo-cidadao` — nesse caso, somente quem possui esse cargo (ou acesso policial/admin) pode usar os botões de denúncia.
+Aberto a qualquer membro do servidor (ouvidoria pública), salvo se um **cargo de cidadão** for configurado via `/configurar-cargos cargo-cidadao` — nesse caso, somente quem possui esse cargo (ou acesso policial/admin) pode usar os botões de denúncia.
 
 | Botão | Ação |
 |---|---|
@@ -800,7 +800,7 @@ Aberto a qualquer membro do servidor (ouvidoria pública), salvo se um **cargo d
 /configurar canal-ia          #assuntos-internos     ← quadros de investigação
 /configurar categoria-ia      Assuntos Internos      ← canais temporários de provas
 /configurar canal-provas-ia   #provas-ia             ← arquivo permanente de provas
-/configurar cargo-ia @Assuntos Internos Adicionar
+/configurar-cargos cargo-ia @Assuntos Internos Adicionar
 ```
 
 ### Abrir uma investigação — `/ia abrir` ou Painel de IA
@@ -1032,7 +1032,7 @@ Abre um modal com:
 | Mensagem | **Sim** |
 | Emojis para reação (separados por espaço) | Não |
 
-O comunicado é publicado no canal configurado em `/configurar canal-comunicados` como um embed; o bot reage automaticamente com os emojis informados (ex.: ✅ para os oficiais confirmarem leitura). Em seguida, em uma mensagem separada **logo após o quadro do aviso**, o bot menciona `@everyone` e todos os cargos definidos em `/configurar cargo-policia`, garantindo que todos os oficiais sejam notificados.
+O comunicado é publicado no canal configurado em `/configurar canal-comunicados` como um embed; o bot reage automaticamente com os emojis informados (ex.: ✅ para os oficiais confirmarem leitura). Em seguida, em uma mensagem separada **logo após o quadro do aviso**, o bot menciona `@everyone` e todos os cargos definidos em `/configurar-cargos cargo-policia`, garantindo que todos os oficiais sejam notificados.
 
 ---
 
@@ -1070,13 +1070,13 @@ O comunicado é publicado no canal configurado em `/configurar canal-comunicados
 | Painel Civil (denúncias) | Cidadão²| Cidadão²| ✅ | ✅ | ✅ | ✅ |
 | `/configurar`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | `/apagar-mensagem` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `/configurar-cargos cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 > ¹ **Responsável** = oficial que abriu o relatório (`opened_by_discord_id`).
 > **Responsável da unidade** = oficial que executou `/iniciar` (papel `LEADER`).
-> ² **Cidadão** = se um cargo de cidadão estiver definido via `/configurar cargo-cidadao`, somente quem o possui (além de oficiais e admins) pode usar o Painel Civil; sem cargo configurado, qualquer membro pode usar.
-> **Membro de IA** = cargo definido via `/configurar cargo-ia`.
-> **Gestor de Configuração** = cargo definido via `/configurar cargo-gestor`.
+> ² **Cidadão** = se um cargo de cidadão estiver definido via `/configurar-cargos cargo-cidadao`, somente quem o possui (além de oficiais e admins) pode usar o Painel Civil; sem cargo configurado, qualquer membro pode usar.
+> **Membro de IA** = cargo definido via `/configurar-cargos cargo-ia`.
+> **Gestor de Configuração** = cargo definido via `/configurar-cargos cargo-gestor`.
 
 ---
 

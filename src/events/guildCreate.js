@@ -49,7 +49,7 @@ module.exports = {
                         '`/configurar canal-relatorios` — canal para relatórios',
                         '`/configurar canal-armamento` — canal para extravios',
                         '`/configurar categoria-voz` — categoria para canais de voz',
-                        '`/configurar cargo-supervisor` — cargos que gerenciam turnos',
+                        '`/configurar-cargos cargo-supervisor` — cargos que gerenciam turnos',
                     ].join('\n'),
                     inline: false,
                 },
