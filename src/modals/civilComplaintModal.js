@@ -6,8 +6,8 @@ module.exports = {
     customId: 'modal:civil_complaint',
 
     async execute(interaction) {
-        const citizenId   = interaction.fields.getTextInputValue('citizen_id').trim();
-        const name        = interaction.fields.getTextInputValue('complainant_name').trim();
+        const citizenId   = interaction.fields.getTextInputValue('citizen_id').trim() || null;
+        const name        = interaction.fields.getTextInputValue('complainant_name').trim() || null;
         const phone       = interaction.fields.getTextInputValue('phone').trim() || null;
         const subject     = interaction.fields.getTextInputValue('subject').trim();
         const description = interaction.fields.getTextInputValue('description').trim();

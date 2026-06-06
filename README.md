@@ -509,7 +509,7 @@ police-rp-bot/
 │   │   ├── iaPanelDelete.js                 # Deletar investigação pelo painel de IA
 │   │   ├── srDetailsModal.js                # Detalhes do Relatório de Serviço (etapa 2)
 │   │   ├── srBoardEditModal.js              # Editar descrição de relatório existente
-│   │   ├── civilComplaintModal.js           # Formulário de denúncia civil (CitizenID/nome obrigatórios); inicia provas
+│   │   ├── civilComplaintModal.js           # Formulário de denúncia civil (CitizenID/nome opcionais — anônima); inicia provas
 │   │   ├── civilComplaintRejectModal.js     # Justificativa de arquivamento da denúncia
 │   │   ├── trafficWarningStep1Modal.js      # Advertência de trânsito — etapa 1 (condutor/CitizenID/placa/prazo)
 │   │   ├── trafficWarningStep2Modal.js      # Advertência de trânsito — etapa 2 (infrações/descrição) + publica
@@ -955,13 +955,13 @@ Canal de denúncias aberto a qualquer membro do servidor, totalmente separado do
 
 | Campo | Obrigatório |
 |---|:---:|
-| CitizenID | **Sim** |
-| Seu nome | **Sim** |
+| CitizenID | Não — deixe em branco para denúncia anônima |
+| Seu nome | Não — deixe em branco para denúncia anônima |
 | Telefone para contato | Não |
 | Assunto / Policial envolvido | **Sim** |
 | Descreva o ocorrido | **Sim** |
 
-> A denúncia é sempre identificada e vinculada ao usuário — não há mais fluxo anônimo. Isso garante que toda denúncia possa ser consultada depois em "Minhas Denúncias" pelo número do registro.
+> CitizenID e nome são opcionais: deixando-os em branco, a denúncia é exibida como **🕵️ Anônimo** para a Corregedoria. A denúncia continua vinculada ao usuário do Discord internamente, podendo ser consultada depois em "Minhas Denúncias" pelo número do registro.
 
 **Etapa 2 — Provas**
 

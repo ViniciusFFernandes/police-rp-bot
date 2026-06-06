@@ -42,16 +42,16 @@ module.exports = {
 
             const citizenIdInput = new TextInputBuilder()
                 .setCustomId('citizen_id')
-                .setLabel('CitizenID')
+                .setLabel('CitizenID (deixe em branco p/ anônimo)')
                 .setStyle(TextInputStyle.Short)
-                .setRequired(true)
+                .setRequired(false)
                 .setMaxLength(50);
 
             const nameInput = new TextInputBuilder()
                 .setCustomId('complainant_name')
-                .setLabel('Seu nome')
+                .setLabel('Seu nome (deixe em branco p/ anônimo)')
                 .setStyle(TextInputStyle.Short)
-                .setRequired(true)
+                .setRequired(false)
                 .setMaxLength(100);
 
             const phoneInput = new TextInputBuilder()
