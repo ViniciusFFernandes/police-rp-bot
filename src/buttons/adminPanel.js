@@ -101,7 +101,7 @@ module.exports = {
         try {
             // Supervisores, administradores e Assuntos Internos
             if (!await isIAStaff(interaction.member)) {
-                const reply = { content: '❌ Acesso restrito a **Supervisores** e **Administradores**.', ephemeral: true };
+                const reply = { content: '❌ Acesso restrito a **Supervisores**, **Administradores** e **Assuntos Internos**.', ephemeral: true };
                 if (interaction.replied || interaction.deferred) return interaction.followUp(reply);
                 return interaction.reply(reply);
             }
@@ -169,16 +169,16 @@ module.exports = {
                 return interaction.showModal(modal);
             }
 
-            // ── Remover do Quadro de Callsigns — passo 1: selecionar oficial ──
+            // ── Remover Callsign — passo 1: selecionar oficial ──
             if (action === 'callsign_remove') {
                 return interaction.reply({
-                    content: 'Selecione o oficial a remover do quadro de callsigns (ex: oficial demitido):',
+                    content: 'Selecione o oficial cujo callsign deseja remover (ex: oficial demitido):',
                     components: [userSelectRow('adminpanel:callsign_remove_user', 'Selecione o oficial')],
                     ephemeral: true,
                 });
             }
 
-            // ── Remover do Quadro de Callsigns — passo 2: confirmar ───
+            // ── Remover Callsign — passo 2: confirmar ───
             if (action === 'callsign_remove_user') {
                 await interaction.deferUpdate();
                 const targetId = interaction.values[0];
@@ -206,7 +206,7 @@ module.exports = {
                 });
             }
 
-            // ── Remover do Quadro de Callsigns — passo 3: executar ────
+            // ── Remover Callsign — passo 3: executar ────
             // customId: adminpanel:callsign_remove_confirm:{targetId}
             if (action === 'callsign_remove_confirm') {
                 await interaction.deferUpdate();

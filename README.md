@@ -764,7 +764,7 @@ Exclusivo para supervisores e administradores.
 | 🗄️ **Arsenal** | Seleciona o oficial → arsenal completo com histórico de extravios |
 | 🚔 **Turnos em Andamento** | Lista todos os turnos ativos no servidor |
 | 📢 **Comunicado Geral** | Modal (título, mensagem, emojis) → publica um comunicado no canal configurado, marcando `@everyone` + cargos policiais e reagindo com os emojis informados |
-| 🗑️ **Remover do Quadro** | Seleciona o oficial → confirma → remove o perfil operacional e atualiza o quadro de callsigns (ex: demissão) |
+| 🗑️ **Remover Callsign** | Seleciona o oficial → confirma → remove o perfil operacional e atualiza o quadro de callsigns (ex: demissão) |
 
 ---
 
