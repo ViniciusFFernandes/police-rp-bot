@@ -267,7 +267,8 @@ async function endShift(interaction, targetDiscordId = null, { reason = null, re
     const reportChannelId = await guildConfigRepo.get(interaction.guildId, 'report_channel_id');
     const reportChannel = interaction.guild.channels.cache.get(reportChannelId);
     if (reportChannel) {
-        const reportEmbed = buildReportEmbed(ended, shiftUser, pauses);
+        const closedBy = interaction.user.id !== leaderDiscordId ? interaction.user : null;
+        const reportEmbed = buildReportEmbed(ended, shiftUser, pauses, closedBy);
         await reportChannel.send({ embeds: [reportEmbed] });
     }
 

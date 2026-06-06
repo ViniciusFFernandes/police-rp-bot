@@ -144,7 +144,7 @@ function buildShiftButtons(status) {
     return [row1, row2];
 }
 
-function buildReportEmbed(shift, user, pauses) {
+function buildReportEmbed(shift, user, pauses, closedBy = null) {
     const losses = shift.weapon_losses || [];
     const effective = (new Date(shift.ended_at) - new Date(shift.started_at)) - (shift.total_pause_ms || 0);
 
@@ -154,6 +154,10 @@ function buildReportEmbed(shift, user, pauses) {
         .addFields(
             { name: '👮 Responsável', value: `<@${user.id}> (${user.tag})`, inline: false },
         );
+
+    if (closedBy && closedBy.id !== user.id) {
+        embed.addFields({ name: '🔐 Encerrado por', value: `<@${closedBy.id}> (${closedBy.tag})`, inline: false });
+    }
 
     const team = formatTeam(shift.members);
     if (team) {
