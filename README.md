@@ -325,9 +325,12 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 | `/configurar canal-denuncias-civis` | Canal onde a Corregedoria avalia as denúncias registradas por civis |
 | `/configurar categoria-denuncias-civis` | Categoria para canais temporários de coleta de provas de denúncias civis |
 | `/configurar canal-provas-denuncias-civis` | Canal de arquivo permanente de provas de denúncias civis |
+| `/configurar canal-notificacoes-transito` | Canal de notificações de novas advertências de trânsito |
+| `/configurar canal-comunicados` | Canal onde os comunicados gerais são publicados |
 | `/configurar cargo-supervisor` | Adiciona ou remove um cargo supervisor |
 | `/configurar cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
 | `/configurar cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
+| `/configurar cargo-cidadao` | Adiciona ou remove um cargo de cidadão (acesso restrito à Ouvidoria Civil) |
 | `/configurar cargo-gestor` | Adiciona ou remove um cargo gestor de configuração (somente Admins) |
 | `/configuracoes` | Exibe status de todas as configurações |
 
@@ -506,8 +509,12 @@ police-rp-bot/
 │   │   ├── iaPanelDelete.js                 # Deletar investigação pelo painel de IA
 │   │   ├── srDetailsModal.js                # Detalhes do Relatório de Serviço (etapa 2)
 │   │   ├── srBoardEditModal.js              # Editar descrição de relatório existente
-│   │   ├── civilComplaintModal.js           # Formulário de denúncia civil; inicia provas
-│   │   └── civilComplaintRejectModal.js     # Justificativa de arquivamento da denúncia
+│   │   ├── civilComplaintModal.js           # Formulário de denúncia civil (CitizenID/nome obrigatórios); inicia provas
+│   │   ├── civilComplaintRejectModal.js     # Justificativa de arquivamento da denúncia
+│   │   ├── trafficWarningStep1Modal.js      # Advertência de trânsito — etapa 1 (condutor/CitizenID/placa/prazo)
+│   │   ├── trafficWarningStep2Modal.js      # Advertência de trânsito — etapa 2 (infrações/descrição) + publica
+│   │   ├── trafficWarningSearchModal.js     # Consulta de advertências por CitizenID e/ou placa parcial
+│   │   └── adminAnnouncementModal.js        # Comunicado geral (título/mensagem/emojis) → publica e marca cargos
 │   │
 │   ├── services/
 │   │   ├── shiftService.js            # Lógica de turno (start/pause/resume/end/loss/addWeapon)
@@ -519,6 +526,7 @@ police-rp-bot/
 │   │   ├── serviceReportService.js    # Embed do quadro de Relatório de Serviço + publicação
 │   │   ├── civilPanelService.js       # Painel civil — publicação/atualização
 │   │   ├── civilComplaintService.js   # Card de avaliação de denúncia + publicação
+│   │   ├── trafficWarningService.js   # Embed de advertência + notificação no canal configurado
 │   │   └── guildConfigService.js      # Lógica de configuração por servidor
 │   │
 │   ├── repositories/
@@ -533,6 +541,7 @@ police-rp-bot/
 │   │   ├── iaRepository.js
 │   │   ├── serviceReportRepository.js
 │   │   ├── civilComplaintRepository.js
+│   │   ├── trafficWarningRepository.js
 │   │   ├── vehicleRepository.js
 │   │   ├── unitRepository.js
 │   │   └── guildConfigRepository.js
@@ -556,6 +565,7 @@ police-rp-bot/
 │   │   ├── pendingSR.js               # Store temporário do fluxo multi-etapa de SR (TTL 15min)
 │   │   ├── pendingSRFilter.js         # Store temporário dos filtros de consulta de SR (TTL 15min)
 │   │   ├── pendingCivilComplaint.js   # Store temporário do fluxo de denúncia civil (TTL 15min)
+│   │   ├── pendingTrafficWarning.js   # Store temporário do fluxo de advertência de trânsito em 2 etapas (TTL 15min)
 │   │   ├── collectEvidence.js         # Coleta/arquiva provas de canais temporários (IA/SR/Civil)
 │   │   ├── openCompositionScreen.js
 │   │   └── guildWhitelist.js
@@ -580,7 +590,9 @@ police-rp-bot/
 │       ├── 014_ia_multi_accused.sql
 │       ├── 015_service_reports.sql
 │       ├── 016_ia_measures.sql
-│       └── 017_civil_complaints.sql
+│       ├── 017_civil_complaints.sql
+│       ├── 018_civil_complaints_identification.sql
+│       └── 019_traffic_warnings.sql
 │
 ├── scripts/
 │   ├── deploy-commands.js
@@ -732,7 +744,11 @@ Disponível para todos os oficiais com acesso ao bot.
 | 🚨 **Extravio de Arma** | **Supervisor/admin:** modal com série + observação. **Oficial comum:** select menu com suas armas ativas → modal de observação |
 | 👮 **Ver Perfil** | Exibe seu perfil operacional (distrito, callsign, distintivo) |
 | 📋 **Abrir Relatório** | Inicia o fluxo de criação de Relatório de Serviço |
+| 🔎 **Consultar Relatórios** | Busca relatórios com filtros opcionais (tipo, envolvido, situação) |
+| 🚦 **Advertência de Trânsito** | Modal em 2 etapas para registrar uma advertência (condutor, CitizenID, placa, prazo, infrações, descrição) |
+| 🚧 **Consultar Advertências** | Modal de busca por CitizenID e/ou placa (aceita placa parcial) |
 | 🚔 **Iniciar Turno** | Abre a tela de montagem da unidade (mesmo fluxo do `/iniciar`) |
+| 📕 **Encerrar Turno** | Encerra o turno ativo do oficial sem precisar localizar a embed |
 
 ---
 
@@ -747,6 +763,8 @@ Exclusivo para supervisores e administradores.
 | 📋 **Histórico de Turnos** | Seleciona o oficial → lista paginada dos últimos turnos |
 | 🗄️ **Arsenal** | Seleciona o oficial → arsenal completo com histórico de extravios |
 | 🚔 **Turnos em Andamento** | Lista todos os turnos ativos no servidor |
+| 📢 **Comunicado Geral** | Modal (título, mensagem, emojis) → publica um comunicado no canal configurado, marcando `@everyone` + cargos policiais e reagindo com os emojis informados |
+| 🗑️ **Remover do Quadro** | Seleciona o oficial → confirma → remove o perfil operacional e atualiza o quadro de callsigns (ex: demissão) |
 
 ---
 
@@ -765,7 +783,7 @@ Exclusivo para a equipe de Assuntos Internos (admins, supervisores e cargo de IA
 
 ### Painel Civil — `/configurar canal-painel-civil`
 
-Aberto a qualquer membro do servidor (ouvidoria pública).
+Aberto a qualquer membro do servidor (ouvidoria pública), salvo se um **cargo de cidadão** for configurado via `/configurar cargo-cidadao` — nesse caso, somente quem possui esse cargo (ou acesso policial/admin) pode usar os botões de denúncia.
 
 | Botão | Ação |
 |---|---|
@@ -935,11 +953,13 @@ Canal de denúncias aberto a qualquer membro do servidor, totalmente separado do
 
 | Campo | Obrigatório |
 |---|:---:|
-| Seu nome (deixe em branco para anônima) | Não |
+| CitizenID | **Sim** |
+| Seu nome | **Sim** |
+| Telefone para contato | Não |
 | Assunto / Policial envolvido | **Sim** |
 | Descreva o ocorrido | **Sim** |
 
-> ⚠️ Deixar o campo **nome** em branco registra a denúncia como **anônima** — ela não fica vinculada ao usuário e **não pode ser consultada depois** em "Minhas Denúncias". Preencher o nome vincula a denúncia ao usuário, permitindo consulta futura pelo número.
+> A denúncia é sempre identificada e vinculada ao usuário — não há mais fluxo anônimo. Isso garante que toda denúncia possa ser consultada depois em "Minhas Denúncias" pelo número do registro.
 
 **Etapa 2 — Provas**
 
@@ -956,7 +976,63 @@ Cada denúncia gera um card no canal de avaliação configurado, visível apenas
 
 ### Consultar denúncias — Painel Civil → 📂 Minhas Denúncias
 
-Lista apenas as denúncias **identificadas** feitas pelo próprio usuário, com número, assunto e status atual (Aguardando avaliação / Aceita / Arquivada). Denúncias anônimas nunca aparecem aqui.
+Lista as denúncias feitas pelo próprio usuário, com número, assunto e status atual (Aguardando avaliação / Aceita / Arquivada).
+
+---
+
+## Advertências de Trânsito
+
+Registro e consulta de advertências de trânsito direto pelo Painel Operacional, sem precisar de comandos.
+
+### Configuração
+
+```
+/configurar canal-notificacoes-transito   #notificacoes-transito   ← canal de notificações de novas advertências
+```
+
+### Registrar — Painel Operacional → 🚦 Advertência de Trânsito
+
+Como o formulário tem 6 campos e o Discord permite no máximo 5 por modal, o registro é feito em **duas etapas**:
+
+**Etapa 1**
+
+| Campo | Obrigatório |
+|---|:---:|
+| Nome do condutor | **Sim** |
+| CitizenID | **Sim** |
+| Placa do veículo | Não |
+| Prazo da advertência | Não |
+
+**Etapa 2**
+
+| Campo | Obrigatório |
+|---|:---:|
+| Infrações cometidas | **Sim** |
+| Descrição do ocorrido | Não |
+
+Ao confirmar, a advertência recebe um número sequencial (`ADV-AAAA-NNN`), é vinculada a quem registrou e, se o canal de notificações estiver configurado, um embed é publicado automaticamente nesse canal.
+
+### Consultar — Painel Operacional → 🚧 Consultar Advertências
+
+Modal com dois filtros **opcionais**: CitizenID e placa. A busca por placa aceita correspondência **parcial** (ex.: informar apenas os 4 últimos dígitos retorna todas as placas que contenham esse trecho).
+
+---
+
+## Comunicado Geral
+
+Permite que supervisores e administradores publiquem avisos para todos os oficiais sem sair do Discord.
+
+### Publicar — Painel Administrativo → 📢 Comunicado Geral
+
+Abre um modal com:
+
+| Campo | Obrigatório |
+|---|:---:|
+| Título do comunicado | **Sim** |
+| Mensagem | **Sim** |
+| Emojis para reação (separados por espaço) | Não |
+
+O comunicado é publicado no canal configurado em `/configurar canal-comunicados` como um embed; o bot reage automaticamente com os emojis informados (ex.: ✅ para os oficiais confirmarem leitura). Em seguida, em uma mensagem separada **logo após o quadro do aviso**, o bot menciona `@everyone` e todos os cargos definidos em `/configurar cargo-policia`, garantindo que todos os oficiais sejam notificados.
 
 ---
 
@@ -988,12 +1064,17 @@ Lista apenas as denúncias **identificadas** feitas pelo próprio usuário, com 
 | `/ia abrir`, listar, ver, alterar status | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
 | `/ia deletar` | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | Painel de IA | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| Registrar / consultar Advertência de Trânsito | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Comunicado Geral | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Remover oficial do Quadro de Callsigns | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Painel Civil (denúncias) | Cidadão²| Cidadão²| ✅ | ✅ | ✅ | ✅ |
 | `/configurar`, `/veiculo`, `/unidade` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | `/apagar-mensagem` | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | `/configurar cargo-gestor` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 > ¹ **Responsável** = oficial que abriu o relatório (`opened_by_discord_id`).
 > **Responsável da unidade** = oficial que executou `/iniciar` (papel `LEADER`).
+> ² **Cidadão** = se um cargo de cidadão estiver definido via `/configurar cargo-cidadao`, somente quem o possui (além de oficiais e admins) pode usar o Painel Civil; sem cargo configurado, qualquer membro pode usar.
 > **Membro de IA** = cargo definido via `/configurar cargo-ia`.
 > **Gestor de Configuração** = cargo definido via `/configurar cargo-gestor`.
 
@@ -1019,6 +1100,7 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `ia_investigations` | Investigações internas de Assuntos Internos |
 | `service_reports` | Relatórios de Serviço (ocorrências, prisões, crimes) |
 | `civil_complaints` | Denúncias civis (Ouvidoria) e seu status de avaliação |
+| `traffic_warnings` | Advertências de trânsito registradas pelos oficiais |
 | `vehicles` | Viaturas disponíveis por servidor |
 | `units` | Unidades operacionais disponíveis por servidor |
 | `guild_config` | Todas as configurações do servidor |
@@ -1054,9 +1136,12 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `civil_complaints_channel_id` | Canal de avaliação das denúncias pela Corregedoria |
 | `civil_complaints_category_id` | Categoria para canais temporários de provas de denúncias civis |
 | `civil_evidence_channel_id` | Canal de arquivo permanente de provas de denúncias civis |
+| `traffic_warnings_channel_id` | Canal de notificações de novas advertências de trânsito |
+| `announcements_channel_id` | Canal onde os comunicados gerais são publicados |
 | `supervisor_role_ids` | JSON array de cargos supervisores |
 | `config_manager_role_ids` | JSON array de cargos gestores de configuração |
 | `police_role_ids` | JSON array de cargos com acesso ao bot |
+| `citizen_role_ids` | JSON array de cargos de cidadão (acesso restrito à Ouvidoria Civil) |
 
 ---
 
