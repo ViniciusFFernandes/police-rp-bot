@@ -961,7 +961,7 @@ Canal de denúncias aberto a qualquer membro do servidor, totalmente separado do
 | Assunto / Policial envolvido | **Sim** |
 | Descreva o ocorrido | **Sim** |
 
-> CitizenID e nome são opcionais: deixando-os em branco, a denúncia é exibida como **🕵️ Anônimo** para a Corregedoria. A denúncia continua vinculada ao usuário do Discord internamente, podendo ser consultada depois em "Minhas Denúncias" pelo número do registro.
+> CitizenID e nome são opcionais: deixando-os em branco, a denúncia é marcada como **anônima** e exibida como **🕵️ Anônimo** para a Corregedoria. O vínculo com o usuário do Discord é mantido internamente (para fins de moderação/abuso), mas denúncias anônimas **não aparecem em "Minhas Denúncias"** — guarde o número do registro exibido na confirmação caso precise dele depois.
 
 **Etapa 2 — Provas**
 

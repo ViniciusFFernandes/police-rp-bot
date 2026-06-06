@@ -268,7 +268,9 @@ async function submitComplaint(interaction, authorId, evidence) {
         const msg = {
             content:
                 `✅ Denúncia **${complaintNumber}** registrada com sucesso e encaminhada à Corregedoria para avaliação.\n` +
-                `📂 Você pode consultá-la depois em **Minhas Denúncias** pelo número **${complaintNumber}**.`,
+                (complaint.is_anonymous
+                    ? `🕵️ Como foi enviada **anonimamente**, ela não aparecerá em **Minhas Denúncias** — guarde o número **${complaintNumber}** caso precise dele depois.`
+                    : `📂 Você pode consultá-la depois em **Minhas Denúncias** pelo número **${complaintNumber}**.`),
             components: [],
         };
         if (interaction.replied || interaction.deferred) return interaction.editReply(msg);

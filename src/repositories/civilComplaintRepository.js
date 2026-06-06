@@ -21,14 +21,16 @@ async function create(data) {
         subject, description, evidence,
     } = data;
 
+    const isAnonymous = !complainantName && !citizenId;
+
     const { rows } = await db.query(
         `INSERT INTO civil_complaints
          (guild_id, complaint_number, is_anonymous, complainant_discord_id, complainant_name,
           citizen_id, phone, subject, description, evidence)
-         VALUES ($1,$2,FALSE,$3,$4,$5,$6,$7,$8,$9)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          RETURNING *`,
         [
-            guildId, complaintNumber,
+            guildId, complaintNumber, isAnonymous,
             complainantDiscordId, complainantName,
             citizenId || null, phone || null,
             subject || null, description || null, evidence || null,
@@ -56,7 +58,7 @@ async function findByComplaintNumber(complaintNumber, guildId) {
 async function listByComplainant(guildId, complainantDiscordId) {
     const { rows } = await db.query(
         `SELECT * FROM civil_complaints
-         WHERE guild_id = $1 AND complainant_discord_id = $2
+         WHERE guild_id = $1 AND complainant_discord_id = $2 AND is_anonymous = FALSE
          ORDER BY created_at DESC`,
         [guildId, complainantDiscordId]
     );
