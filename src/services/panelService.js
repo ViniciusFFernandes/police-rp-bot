@@ -21,8 +21,6 @@ function buildPanelEmbed() {
             { name: '🗄️ Ver Arsenal',      value: 'Lista suas armas ativas.',                               inline: true },
             { name: '🚨 Extravio de Arma', value: 'Registra o extravio de uma arma fora de turno.',        inline: true },
             { name: '👮 Ver Perfil',       value: 'Exibe seu perfil operacional (distrito, callsign etc.).', inline: true },
-            { name: '📋 Abrir Relatório',  value: 'Abre um novo relatório de ocorrência, prisão ou crime.', inline: true },
-            { name: '🔎 Consultar Relatórios', value: 'Busca relatórios com filtros opcionais (tipo, envolvido, situação).', inline: true },
             { name: '🚔 Iniciar Turno',    value: 'Inicia um novo turno como unidade operacional.',          inline: true },
             { name: '📕 Encerrar Turno',   value: 'Encerra seu turno ativo sem precisar localizar a embed.', inline: true },
             { name: '🚦 Advertência de Trânsito', value: 'Registra uma nova advertência de trânsito.', inline: true },
@@ -56,19 +54,6 @@ function buildPanelComponents() {
 
     const row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId('panel:open_report')
-            .setLabel('Abrir Relatório')
-            .setEmoji('📋')
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId('panel:list_reports')
-            .setLabel('Consultar Relatórios')
-            .setEmoji('🔎')
-            .setStyle(ButtonStyle.Secondary),
-    );
-
-    const row3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
             .setCustomId('panel:traffic_warning_register')
             .setLabel('Advertência de Trânsito')
             .setEmoji('🚦')
@@ -80,7 +65,7 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Secondary),
     );
 
-    const row4 = new ActionRowBuilder().addComponents(
+    const row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('panel:start_shift')
             .setLabel('Iniciar Turno')
@@ -93,7 +78,7 @@ function buildPanelComponents() {
             .setStyle(ButtonStyle.Danger),
     );
 
-    return [row1, row2, row3, row4];
+    return [row1, row2, row3];
 }
 
 async function refresh(guild) {
