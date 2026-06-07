@@ -743,8 +743,8 @@ Disponível para todos os oficiais com acesso ao bot.
 | 🗄️ **Ver Arsenal** | Exibe suas armas ativas |
 | 🚨 **Extravio de Arma** | **Supervisor/admin:** modal com série + observação. **Oficial comum:** select menu com suas armas ativas → modal de observação |
 | 👮 **Ver Perfil** | Exibe seu perfil operacional (distrito, callsign, distintivo) |
-| 📋 **Abrir Relatório** | Inicia o fluxo de criação de Relatório de Serviço |
-| 🔎 **Consultar Relatórios** | Busca relatórios com filtros opcionais (tipo, envolvido, situação) |
+| ~~📋 **Abrir Relatório**~~ | ~~Inicia o fluxo de criação de Relatório de Serviço~~ *(desabilitado temporariamente — botão removido do painel; rotina mantida no código)* |
+| ~~🔎 **Consultar Relatórios**~~ | ~~Busca relatórios com filtros opcionais (tipo, envolvido, situação)~~ *(desabilitado temporariamente)* |
 | 🚦 **Advertência de Trânsito** | Modal em 2 etapas para registrar uma advertência (condutor, CitizenID, placa, prazo, infrações, descrição) |
 | 🚧 **Consultar Advertências** | Modal de busca por CitizenID e/ou placa (aceita placa parcial) |
 | 🚔 **Iniciar Turno** | Abre a tela de montagem da unidade (mesmo fluxo do `/iniciar`) |
@@ -868,6 +868,8 @@ Cada investigação gera uma embed persistente no canal de IA com todos os dados
 ---
 
 ## Relatórios de Serviço (SR)
+
+> ⚠️ **Funcionalidade temporariamente desabilitada.** Os botões **Abrir Relatório** e **Consultar Relatórios** foram removidos do Painel Operacional. Não há comando slash alternativo — o acesso estava exclusivamente pelos botões. Toda a rotina (handlers, modals, services, repositories, migrations) permanece intacta no código para reativação futura.
 
 Sistema para registro de ocorrências atendidas em campo, prisões e crimes não resolvidos. Acessível pelo botão **📋 Abrir Relatório** no painel operacional ou via fluxo guiado.
 
