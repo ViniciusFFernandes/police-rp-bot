@@ -225,15 +225,13 @@ module.exports = {
 
                 const member = await interaction.guild.members.fetch(targetId).catch(() => null);
                 if (member) {
-                    const [policeRoles, supervisorRoles, iaRoles, citizenRoles] = await Promise.all([
-                        guildConfigRepo.getPoliceRoles(guildId),
-                        guildConfigRepo.getSupervisorRoles(guildId),
-                        guildConfigRepo.getIARoles(guildId),
-                        guildConfigRepo.getCitizenRoles(guildId),
-                    ]);
+                    const citizenRoles = await guildConfigRepo.getCitizenRoles(guildId);
 
-                    const rolesToRemove = [...new Set([...policeRoles, ...supervisorRoles, ...iaRoles])];
-                    for (const roleId of rolesToRemove) {
+                    const allRoleIds = member.roles.cache
+                        .filter(r => r.id !== interaction.guild.id)
+                        .map(r => r.id);
+
+                    for (const roleId of allRoleIds) {
                         await member.roles.remove(roleId).catch(() => {});
                     }
                     for (const roleId of citizenRoles) {
