@@ -13,6 +13,7 @@ const officialProfileRepo = require('../repositories/officialProfileRepository')
 const shiftRepo           = require('../repositories/shiftRepository');
 const officialWeaponRepo  = require('../repositories/officialWeaponRepository');
 const callsignBoardService = require('../services/callsignBoardService');
+const guildConfigRepo      = require('../repositories/guildConfigRepository');
 const { isIAStaff } = require('../utils/permissions');
 const { formatDuration, formatTimestamp } = require('../utils/time');
 const { COLOR } = require('../utils/embeds');
@@ -211,9 +212,10 @@ module.exports = {
             if (action === 'callsign_remove_confirm') {
                 await interaction.deferUpdate();
                 const targetId = parts[2];
+                const guildId  = interaction.guildId;
                 const dbUser   = await userRepo.findByDiscordId(targetId);
 
-                const removed = dbUser ? await officialProfileRepo.remove(dbUser.id, interaction.guildId) : false;
+                const removed = dbUser ? await officialProfileRepo.remove(dbUser.id, guildId) : false;
 
                 if (!removed) {
                     return interaction.editReply({ content: '⚠️ Não foi possível remover — perfil não encontrado.', components: [] });
@@ -221,8 +223,28 @@ module.exports = {
 
                 await callsignBoardService.refresh(interaction.guild);
 
+                const member = await interaction.guild.members.fetch(targetId).catch(() => null);
+                if (member) {
+                    const [policeRoles, supervisorRoles, iaRoles, citizenRoles] = await Promise.all([
+                        guildConfigRepo.getPoliceRoles(guildId),
+                        guildConfigRepo.getSupervisorRoles(guildId),
+                        guildConfigRepo.getIARoles(guildId),
+                        guildConfigRepo.getCitizenRoles(guildId),
+                    ]);
+
+                    const rolesToRemove = [...new Set([...policeRoles, ...supervisorRoles, ...iaRoles])];
+                    for (const roleId of rolesToRemove) {
+                        await member.roles.remove(roleId).catch(() => {});
+                    }
+                    for (const roleId of citizenRoles) {
+                        await member.roles.add(roleId).catch(() => {});
+                    }
+
+                    await member.setNickname(null).catch(() => {});
+                }
+
                 return interaction.editReply({
-                    content: `✅ <@${targetId}> foi removido do quadro de callsigns.`,
+                    content: `✅ <@${targetId}> foi removido do quadro de callsigns, cargos policiais removidos e apelido restaurado.`,
                     components: [],
                 });
             }
