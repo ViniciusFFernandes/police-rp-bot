@@ -4,6 +4,7 @@ const {
     TextInputBuilder,
     TextInputStyle,
     UserSelectMenuBuilder,
+    StringSelectMenuBuilder,
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
@@ -11,6 +12,7 @@ const {
 const userRepo            = require('../repositories/userRepository');
 const officialProfileRepo = require('../repositories/officialProfileRepository');
 const shiftRepo           = require('../repositories/shiftRepository');
+const shiftService        = require('../services/shiftService');
 const officialWeaponRepo  = require('../repositories/officialWeaponRepository');
 const callsignBoardService = require('../services/callsignBoardService');
 const { isIAStaff } = require('../utils/permissions');
@@ -316,7 +318,76 @@ module.exports = {
                     .setFooter({ text: `${shifts.length} turno(s) ativo(s) · ${interaction.guild.name}` })
                     .setTimestamp();
 
-                return interaction.editReply({ embeds: [embed] });
+                const closeSelect = new StringSelectMenuBuilder()
+                    .setCustomId('adminpanel:close_shift_select')
+                    .setPlaceholder('Fechar turno...')
+                    .addOptions(
+                        shifts.slice(0, 25).map(s => ({
+                            label: s.callsign,
+                            description: s.user_display_name ?? s.user_discord_id,
+                            value: s.user_discord_id,
+                            emoji: STATUS_ICON[s.status] ?? '⚪',
+                        }))
+                    );
+
+                return interaction.editReply({
+                    embeds: [embed],
+                    components: [new ActionRowBuilder().addComponents(closeSelect)],
+                });
+            }
+
+            // ── Fechar Turno (seleção do supervisor) ──────────────────
+            if (action === 'close_shift_select') {
+                await interaction.deferUpdate();
+
+                const targetDiscordId = interaction.values[0];
+                const result = await shiftService.endShift(interaction, targetDiscordId, { reason: 'force_closed' });
+
+                if (result.error) {
+                    return interaction.editReply({ content: `❌ ${result.error}`, components: [] });
+                }
+
+                const remaining = await shiftRepo.findAllActiveByGuild(interaction.guildId);
+
+                if (remaining.length === 0) {
+                    return interaction.editReply({
+                        content: `✅ Turno de <@${targetDiscordId}> encerrado. Nenhum outro turno ativo.`,
+                        embeds: [],
+                        components: [],
+                    });
+                }
+
+                const STATUS_ICON = { active: '🟢', paused: '🟡' };
+                const lines = remaining.map(s => {
+                    const icon  = STATUS_ICON[s.status] || '⚪';
+                    const since = formatTimestamp(s.started_at);
+                    return `${icon} **${s.callsign}** — <@${s.user_discord_id}> — desde ${since}`;
+                });
+
+                const embed = new EmbedBuilder()
+                    .setColor(COLOR.INFO)
+                    .setTitle('🚔 Turnos Ativos')
+                    .setDescription(lines.join('\n'))
+                    .setFooter({ text: `${remaining.length} turno(s) ativo(s) · ${interaction.guild.name}` })
+                    .setTimestamp();
+
+                const closeSelect = new StringSelectMenuBuilder()
+                    .setCustomId('adminpanel:close_shift_select')
+                    .setPlaceholder('Fechar turno...')
+                    .addOptions(
+                        remaining.slice(0, 25).map(s => ({
+                            label: s.callsign,
+                            description: s.user_display_name ?? s.user_discord_id,
+                            value: s.user_discord_id,
+                            emoji: STATUS_ICON[s.status] ?? '⚪',
+                        }))
+                    );
+
+                return interaction.editReply({
+                    content: `✅ Turno de <@${targetDiscordId}> encerrado.`,
+                    embeds: [embed],
+                    components: [new ActionRowBuilder().addComponents(closeSelect)],
+                });
             }
 
             if (action === 'announcement') {

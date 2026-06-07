@@ -11,9 +11,10 @@ const COLOR = {
 };
 
 const END_REASON_LABEL = {
-    patrol_end: 'Fim de Patrulha',
+    patrol_end:   'Fim de Patrulha',
     remodulation: 'Remodulação',
-    other: 'Outro',
+    other:        'Outro',
+    force_closed: 'Encerrado pelo Supervisor',
 };
 
 // Texto amigável do motivo de encerramento, incluindo a nota livre quando houver
