@@ -4,6 +4,7 @@ const weaponLossRepo = require('../../repositories/weaponLossRepository');
 const officialWeaponRepo = require('../../repositories/officialWeaponRepository');
 const shiftRepo = require('../../repositories/shiftRepository');
 const userRepo = require('../../repositories/userRepository');
+const shiftService = require('../../services/shiftService');
 const { formatTimestamp } = require('../../utils/time');
 const { COLOR } = require('../../utils/embeds');
 const { canManageShift, isIAStaff } = require('../../utils/permissions');
@@ -199,11 +200,16 @@ module.exports = {
                 }
             }
 
-            // Verifica se o oficial está em uma unidade ativa — se sim, usa o fluxo de turno
+            // Supervisor/IA Staff extraviam qualquer arma sem restrição de turno
             const activeShift = dbUser ? await shiftRepo.findActiveByParticipant(dbUser.id, guildId) : null;
-            if (activeShift) {
+            if (activeShift && !canAct) {
+                // Oficial comum com turno ativo: redireciona para o fluxo do turno automaticamente
+                const result = await shiftService.reportWeaponLoss(interaction, { serialNumber: serial, observation });
+                if (result.error) {
+                    return interaction.editReply({ content: `❌ ${result.error}` });
+                }
                 return interaction.editReply({
-                    content: `⚠️ Você está em uma unidade ativa. Use o botão **Arma Perdida** na embed do turno para registrar extravios durante o serviço.`,
+                    content: `⚠️ Extravio da arma \`${serial}\` registrado no turno ativo com sucesso.`,
                 });
             }
 
