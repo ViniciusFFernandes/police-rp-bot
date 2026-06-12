@@ -39,6 +39,11 @@ module.exports = {
                 try { await message.react(emoji); } catch { /* emoji inválido — ignora */ }
             }
 
+            await channel.send({
+                content: '@everyone',
+                allowedMentions: { parse: ['everyone'] },
+            });
+
             return interaction.editReply({ content: `✅ Comunicado publicado em ${channel}.` });
         } catch (err) {
             logger.error('Erro ao publicar comunicado do dono', { guild: interaction.guildId, error: err.message });
