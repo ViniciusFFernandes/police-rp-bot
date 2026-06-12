@@ -73,7 +73,8 @@ module.exports = {
         }
 
         if (interaction.type === InteractionType.ModalSubmit) {
-            if (!isAdmin(interaction.member) && !await hasPoliceAccess(interaction.member)) {
+            const isOwnerModal = interaction.customId === 'modal:owner_comunicado';
+            if (!isOwnerModal && !isAdmin(interaction.member) && !await hasPoliceAccess(interaction.member)) {
                 return interaction.reply({ content: '🚫 Você não tem permissão para usar este bot.', ephemeral: true });
             }
             return handleModal(interaction);
