@@ -62,8 +62,11 @@ module.exports = {
         }
 
         // Botões, menus e modais também verificam acesso policial
+        // Prefixos hp: e hpadmin: usam controle de acesso próprio (cargos do hospital)
         if (interaction.isButton() || interaction.isAnySelectMenu()) {
-            if (!isAdmin(interaction.member) && !await hasPoliceAccess(interaction.member)) {
+            const hpPrefixes = ['hp:', 'hpadmin:'];
+            const isHpInteraction = hpPrefixes.some(p => interaction.customId.startsWith(p));
+            if (!isHpInteraction && !isAdmin(interaction.member) && !await hasPoliceAccess(interaction.member)) {
                 return interaction.reply({ content: '🚫 Você não tem permissão para usar este bot.', ephemeral: true });
             }
             return handleButton(interaction);

@@ -32,6 +32,15 @@ const VALID_KEYS = [
     'traffic_warnings_channel_id',
     'announcements_channel_id',
     'citizen_role_ids',
+    // Hospital
+    'hp_panel_channel_id',
+    'hp_panel_message_id',
+    'hp_admin_panel_channel_id',
+    'hp_admin_panel_message_id',
+    'hp_shift_channel_id',
+    'hp_report_channel_id',
+    'hp_role_ids',
+    'hp_supervisor_role_ids',
 ];
 
 async function get(guildId, key) {
@@ -128,6 +137,26 @@ async function setCitizenRoles(guildId, roleIds) {
     await set(guildId, 'citizen_role_ids', JSON.stringify(roleIds));
 }
 
+async function getHpRoles(guildId) {
+    const raw = await get(guildId, 'hp_role_ids');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+async function setHpRoles(guildId, roleIds) {
+    await set(guildId, 'hp_role_ids', JSON.stringify(roleIds));
+}
+
+async function getHpSupervisorRoles(guildId) {
+    const raw = await get(guildId, 'hp_supervisor_role_ids');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+async function setHpSupervisorRoles(guildId, roleIds) {
+    await set(guildId, 'hp_supervisor_role_ids', JSON.stringify(roleIds));
+}
+
 module.exports = {
     get, set, getAll, isConfigured,
     getSupervisorRoles, setSupervisorRoles,
@@ -135,5 +164,7 @@ module.exports = {
     getIARoles, setIARoles,
     getPoliceRoles, setPoliceRoles,
     getCitizenRoles, setCitizenRoles,
+    getHpRoles, setHpRoles,
+    getHpSupervisorRoles, setHpSupervisorRoles,
     VALID_KEYS,
 };

@@ -158,6 +158,43 @@ const CONFIG_META = {
         type: 'channel',
         description: 'Canal onde os comunicados gerais para os oficiais são publicados',
     },
+    // Hospital
+    hp_panel_channel_id: {
+        label: 'HP — Canal do Painel Operacional',
+        emoji: '🏥',
+        type: 'channel',
+        description: 'Canal onde o painel de turnos do hospital é publicado',
+    },
+    hp_admin_panel_channel_id: {
+        label: 'HP — Canal do Painel Administrativo',
+        emoji: '🏥',
+        type: 'channel',
+        description: 'Canal onde o painel administrativo do hospital é publicado',
+    },
+    hp_shift_channel_id: {
+        label: 'HP — Canal de Turnos',
+        emoji: '🏥',
+        type: 'channel',
+        description: 'Canal onde as embeds de turno do hospital são postadas',
+    },
+    hp_report_channel_id: {
+        label: 'HP — Canal de Relatórios',
+        emoji: '🏥',
+        type: 'channel',
+        description: 'Canal onde os relatórios de turno encerrado do hospital são enviados',
+    },
+    hp_role_ids: {
+        label: 'HP — Cargos da Equipe',
+        emoji: '🏥',
+        type: 'roles',
+        description: 'Cargos que podem usar o painel do hospital',
+    },
+    hp_supervisor_role_ids: {
+        label: 'HP — Cargos de Supervisor',
+        emoji: '🏥',
+        type: 'roles',
+        description: 'Cargos que podem usar o painel administrativo do hospital',
+    },
 };
 
 async function setChannel(guildId, key, channel) {

@@ -27,9 +27,10 @@ Suporta **múltiplos servidores simultaneamente** — cada servidor possui confi
 17. [Assuntos Internos (IA)](#assuntos-internos-ia)
 18. [Relatórios de Serviço (SR)](#relatórios-de-serviço-sr)
 19. [Ouvidoria Civil (Denúncias)](#ouvidoria-civil-denúncias)
-20. [Controle de permissões](#controle-de-permissões)
-21. [Banco de dados](#banco-de-dados)
-22. [Solução de problemas](#solução-de-problemas)
+20. [Módulo Hospital](#módulo-hospital)
+21. [Controle de permissões](#controle-de-permissões)
+22. [Banco de dados](#banco-de-dados)
+23. [Solução de problemas](#solução-de-problemas)
 
 ---
 
@@ -327,6 +328,12 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 | `/configurar canal-provas-denuncias-civis` | Canal de arquivo permanente de provas de denúncias civis |
 | `/configurar canal-notificacoes-transito` | Canal de notificações de novas advertências de trânsito |
 | `/configurar canal-comunicados` | Canal onde os comunicados gerais são publicados |
+| `/configurar hp-canal-painel` | Canal do painel operacional do hospital |
+| `/configurar hp-canal-admin` | Canal do painel administrativo do hospital |
+| `/configurar hp-canal-turnos` | Canal das embeds de turno do hospital |
+| `/configurar hp-canal-relatorios` | Canal de relatórios de turno encerrado do hospital |
+| `/configurar hp-cargos` | Cargos da equipe do hospital (até 4, acesso ao painel) |
+| `/configurar hp-supervisores` | Cargos de supervisores do hospital (acesso ao painel admin) |
 | `/configurar-cargos cargo-supervisor` | Adiciona ou remove um cargo supervisor |
 | `/configurar-cargos cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
 | `/configurar-cargos cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
@@ -592,7 +599,8 @@ police-rp-bot/
 │       ├── 016_ia_measures.sql
 │       ├── 017_civil_complaints.sql
 │       ├── 018_civil_complaints_identification.sql
-│       └── 019_traffic_warnings.sql
+│       ├── 019_traffic_warnings.sql
+│       └── 020_hospital_shifts.sql
 │
 ├── scripts/
 │   ├── deploy-commands.js
@@ -1040,6 +1048,66 @@ O comunicado é publicado no canal configurado em `/configurar canal-comunicados
 
 ---
 
+## Módulo Hospital
+
+Sistema independente de controle de turnos para a equipe do hospital. Funciona em paralelo com o sistema policial — cada membro inicia e encerra seu próprio turno individual, sem callsign, viatura ou armamento.
+
+### Configuração
+
+```
+/configurar hp-canal-painel       #hp-painel              ← painel operacional (toda equipe)
+/configurar hp-canal-admin        #hp-admin               ← painel admin (supervisores)
+/configurar hp-canal-turnos       #hp-turnos              ← embeds de turno em andamento
+/configurar hp-canal-relatorios   #hp-relatorios          ← relatórios de turno encerrado
+/configurar hp-cargos             @Médico @Enfermeiro      ← cargos com acesso ao painel
+/configurar hp-supervisores       @Diretor @Chefe HP      ← cargos supervisores do hospital
+```
+
+> Se nenhum cargo de equipe for configurado (`hp-cargos`), **ninguém** (exceto administradores do servidor) poderá usar o painel do hospital.
+
+### Painel Operacional do Hospital — `/configurar hp-canal-painel`
+
+Disponível para todos os membros com o cargo de equipe do hospital.
+
+| Botão | Ação |
+|---|---|
+| ▶️ **Iniciar Turno** | Registra o início do turno e posta a embed no canal de turnos |
+| ⏸️ **Pausar / Retornar** | Pausa o turno ativo ou retoma se já estiver pausado |
+| 🔴 **Encerrar Turno** | Encerra o turno e gera o relatório no canal de relatórios |
+
+### Embed de Turno
+
+Cada turno gera uma embed no canal de turnos com:
+- Profissional responsável (menção)
+- Horário de início
+- Status atual (🟢 Em Serviço / 🟡 Em Pausa / 🔴 Encerrado)
+- Ao encerrar: tempo total, tempo em pausa, tempo efetivo, quem encerrou (se supervisor)
+
+Os botões **Pausar / Retornar** e **Encerrar Turno** também ficam diretamente na embed para quem preferir agir por ali.
+
+### Painel Administrativo do Hospital — `/configurar hp-canal-admin`
+
+Exclusivo para supervisores e administradores do hospital.
+
+| Botão | Ação |
+|---|---|
+| 🚑 **Turnos em Andamento** | Lista todos os turnos ativos com opção de encerrar qualquer um |
+| 📋 **Histórico de Turnos** | Seleciona um membro → lista paginada dos turnos encerrados |
+| 👤 **Ver Perfil** | Seleciona um membro → resumo: total de turnos, tempo efetivo, tempo em pausa e pausas realizadas |
+
+> **Supervisores do hospital podem encerrar forçadamente qualquer turno ativo**, independente de quem iniciou.
+
+### Relatório de Turno Encerrado
+
+Gerado automaticamente no canal de relatórios ao encerrar um turno. Contém:
+- Profissional (menção + tag)
+- Quem encerrou (se diferente do profissional — indica encerramento forçado pelo supervisor)
+- Horário de início e encerramento
+- Tempo total, tempo em pausa, tempo efetivo
+- Número de pausas realizadas
+
+---
+
 ## Controle de permissões
 
 | Ação | Oficial | Resp. Unidade | Supervisor | Membro IA | Gestor Config | Admin |
@@ -1105,6 +1173,8 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `service_reports` | Relatórios de Serviço (ocorrências, prisões, crimes) |
 | `civil_complaints` | Denúncias civis (Ouvidoria) e seu status de avaliação |
 | `traffic_warnings` | Advertências de trânsito registradas pelos oficiais |
+| `hospital_shifts` | Turnos individuais da equipe do hospital |
+| `hospital_pauses` | Pausas dos turnos do hospital |
 | `vehicles` | Viaturas disponíveis por servidor |
 | `units` | Unidades operacionais disponíveis por servidor |
 | `guild_config` | Todas as configurações do servidor |
@@ -1146,6 +1216,12 @@ Execute `npm run db:migrate` para aplicar todas as migrações pendentes.
 | `config_manager_role_ids` | JSON array de cargos gestores de configuração |
 | `police_role_ids` | JSON array de cargos com acesso ao bot |
 | `citizen_role_ids` | JSON array de cargos de cidadão (acesso restrito à Ouvidoria Civil) |
+| `hp_panel_channel_id` | Canal do painel operacional do hospital |
+| `hp_admin_panel_channel_id` | Canal do painel administrativo do hospital |
+| `hp_shift_channel_id` | Canal das embeds de turno do hospital |
+| `hp_report_channel_id` | Canal de relatórios de turno encerrado do hospital |
+| `hp_role_ids` | JSON array de cargos da equipe do hospital |
+| `hp_supervisor_role_ids` | JSON array de cargos de supervisores do hospital |
 
 ---
 

@@ -9,6 +9,8 @@ const panelService          = require('../../services/panelService');
 const adminPanelService     = require('../../services/adminPanelService');
 const iaPanelService        = require('../../services/iaPanelService');
 const civilPanelService     = require('../../services/civilPanelService');
+const hpPanelService        = require('../../services/hpPanelService');
+const hpAdminPanelService   = require('../../services/hpAdminPanelService');
 const { isConfigManager } = require('../../utils/permissions');
 
 module.exports = {
@@ -224,6 +226,79 @@ module.exports = {
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(true)
                 )
+        )
+        // ── Hospital ──────────────────────────────────────────────────────────
+        .addSubcommand(sub =>
+            sub.setName('hp-canal-painel')
+                .setDescription('Canal onde o painel operacional do hospital é publicado')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('hp-canal-admin')
+                .setDescription('Canal onde o painel administrativo do hospital é publicado')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('hp-canal-turnos')
+                .setDescription('Canal onde as embeds de turno do hospital são postadas')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('hp-canal-relatorios')
+                .setDescription('Canal onde os relatórios de turno encerrado do hospital são enviados')
+                .addChannelOption(opt =>
+                    opt.setName('canal')
+                        .setDescription('Selecione o canal')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('hp-cargos')
+                .setDescription('Cargos que podem usar o painel do hospital (membros da equipe)')
+                .addRoleOption(opt =>
+                    opt.setName('cargo1').setDescription('Cargo 1').setRequired(true)
+                )
+                .addRoleOption(opt =>
+                    opt.setName('cargo2').setDescription('Cargo 2 (opcional)').setRequired(false)
+                )
+                .addRoleOption(opt =>
+                    opt.setName('cargo3').setDescription('Cargo 3 (opcional)').setRequired(false)
+                )
+                .addRoleOption(opt =>
+                    opt.setName('cargo4').setDescription('Cargo 4 (opcional)').setRequired(false)
+                )
+        )
+        .addSubcommand(sub =>
+            sub.setName('hp-supervisores')
+                .setDescription('Cargos de supervisores do hospital (acesso ao painel admin)')
+                .addRoleOption(opt =>
+                    opt.setName('cargo1').setDescription('Cargo 1').setRequired(true)
+                )
+                .addRoleOption(opt =>
+                    opt.setName('cargo2').setDescription('Cargo 2 (opcional)').setRequired(false)
+                )
+                .addRoleOption(opt =>
+                    opt.setName('cargo3').setDescription('Cargo 3 (opcional)').setRequired(false)
+                )
+                .addRoleOption(opt =>
+                    opt.setName('cargo4').setDescription('Cargo 4 (opcional)').setRequired(false)
+                )
         ),
 
     async execute(interaction) {
@@ -260,6 +335,11 @@ module.exports = {
             'canal-provas-denuncias-civis':  'civil_evidence_channel_id',
             'canal-notificacoes-transito':   'traffic_warnings_channel_id',
             'canal-comunicados':             'announcements_channel_id',
+            // Hospital
+            'hp-canal-painel':      'hp_panel_channel_id',
+            'hp-canal-admin':       'hp_admin_panel_channel_id',
+            'hp-canal-turnos':      'hp_shift_channel_id',
+            'hp-canal-relatorios':  'hp_report_channel_id',
         };
 
         if (KEY_MAP[sub]) {
@@ -313,8 +393,47 @@ module.exports = {
                 });
             }
 
+            if (sub === 'hp-canal-painel') {
+                await deleteOldPanelMessage(interaction.guild, 'hp_panel_message_id');
+                await guildConfigRepo.set(guildId, 'hp_panel_message_id', null);
+                await hpPanelService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel do hospital foi publicado nesse canal.`,
+                });
+            }
+
+            if (sub === 'hp-canal-admin') {
+                await deleteOldPanelMessage(interaction.guild, 'hp_admin_panel_message_id');
+                await guildConfigRepo.set(guildId, 'hp_admin_panel_message_id', null);
+                await hpAdminPanelService.refresh(interaction.guild);
+                return interaction.editReply({
+                    content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.\nO painel administrativo do hospital foi publicado nesse canal.`,
+                });
+            }
+
             return interaction.editReply({
                 content: `✅ **${meta.emoji} ${meta.label}** configurado para ${channel}.`,
+            });
+        }
+
+        // ── Cargos do Hospital ────────────────────────────────────────────────
+        if (sub === 'hp-cargos' || sub === 'hp-supervisores') {
+            const roles = ['cargo1', 'cargo2', 'cargo3', 'cargo4']
+                .map(name => interaction.options.getRole(name))
+                .filter(Boolean);
+
+            const roleIds = roles.map(r => r.id);
+
+            if (sub === 'hp-cargos') {
+                await guildConfigRepo.setHpRoles(guildId, roleIds);
+                return interaction.editReply({
+                    content: `✅ **🏥 Cargos do Hospital** definidos: ${roles.map(r => `<@&${r.id}>`).join(', ')}`,
+                });
+            }
+
+            await guildConfigRepo.setHpSupervisorRoles(guildId, roleIds);
+            return interaction.editReply({
+                content: `✅ **🏥 Supervisores do Hospital** definidos: ${roles.map(r => `<@&${r.id}>`).join(', ')}`,
             });
         }
 
