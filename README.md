@@ -328,12 +328,12 @@ Gestores podem usar `/configurar`, `/configuracoes`, `/veiculo` e `/unidade`, ma
 | `/configurar canal-provas-denuncias-civis` | Canal de arquivo permanente de provas de denúncias civis |
 | `/configurar canal-notificacoes-transito` | Canal de notificações de novas advertências de trânsito |
 | `/configurar canal-comunicados` | Canal onde os comunicados gerais são publicados |
-| `/configurar hp-canal-painel` | Canal do painel operacional do hospital |
-| `/configurar hp-canal-admin` | Canal do painel administrativo do hospital |
-| `/configurar hp-canal-turnos` | Canal das embeds de turno do hospital |
-| `/configurar hp-canal-relatorios` | Canal de relatórios de turno encerrado do hospital |
-| `/configurar hp-cargos` | Cargos da equipe do hospital (até 4, acesso ao painel) |
-| `/configurar hp-supervisores` | Cargos de supervisores do hospital (acesso ao painel admin) |
+| `/configurar-hp canal-painel` | Canal do painel operacional do hospital |
+| `/configurar-hp canal-admin` | Canal do painel administrativo do hospital |
+| `/configurar-hp canal-turnos` | Canal das embeds de turno do hospital |
+| `/configurar-hp canal-relatorios` | Canal de relatórios de turno encerrado do hospital |
+| `/configurar-hp cargos` | Cargos da equipe do hospital (até 4, acesso ao painel) |
+| `/configurar-hp supervisores` | Cargos de supervisores do hospital (acesso ao painel admin) |
 | `/configurar-cargos cargo-supervisor` | Adiciona ou remove um cargo supervisor |
 | `/configurar-cargos cargo-policia` | Adiciona ou remove um cargo com acesso ao bot |
 | `/configurar-cargos cargo-ia` | Adiciona ou remove um cargo de Assuntos Internos |
@@ -1055,12 +1055,12 @@ Sistema independente de controle de turnos para a equipe do hospital. Funciona e
 ### Configuração
 
 ```
-/configurar hp-canal-painel       #hp-painel              ← painel operacional (toda equipe)
-/configurar hp-canal-admin        #hp-admin               ← painel admin (supervisores)
-/configurar hp-canal-turnos       #hp-turnos              ← embeds de turno em andamento
-/configurar hp-canal-relatorios   #hp-relatorios          ← relatórios de turno encerrado
-/configurar hp-cargos             @Médico @Enfermeiro      ← cargos com acesso ao painel
-/configurar hp-supervisores       @Diretor @Chefe HP      ← cargos supervisores do hospital
+/configurar-hp canal-painel       #hp-painel              ← painel operacional (toda equipe)
+/configurar-hp canal-admin        #hp-admin               ← painel admin (supervisores)
+/configurar-hp canal-turnos       #hp-turnos              ← embeds de turno em andamento
+/configurar-hp canal-relatorios   #hp-relatorios          ← relatórios de turno encerrado
+/configurar-hp cargos             @Médico @Enfermeiro      ← cargos com acesso ao painel
+/configurar-hp supervisores       @Diretor @Chefe HP      ← cargos supervisores do hospital
 ```
 
 > Se nenhum cargo de equipe for configurado (`hp-cargos`), **ninguém** (exceto administradores do servidor) poderá usar o painel do hospital.

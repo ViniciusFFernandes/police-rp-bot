@@ -8,7 +8,7 @@ const { hasPoliceAccess, isAdmin } = require('../utils/permissions');
 const logger = require('../utils/logger');
 
 // Estes comandos não precisam de configuração prévia do servidor
-const ADMIN_COMMANDS = new Set(['configurar', 'configuracoes', 'veiculo', 'unidade']);
+const ADMIN_COMMANDS = new Set(['configurar', 'configurar-hp', 'configuracoes', 'veiculo', 'unidade']);
 
 module.exports = {
     name: Events.InteractionCreate,
